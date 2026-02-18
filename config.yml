@@ -1,0 +1,17 @@
+---
+
+# steam
+steam_api_key: "your_steam_api_key"
+steam_api_url: "https://api.steampowered.com"
+
+# leetify
+leetify_api_url: "https://api.cs-prod.leetify.com"
+
+# discord
+discord_hook: "https://discord.com/api/webhooks/your/token"
+
+# one crawler per tracked player
+players:
+- accountName: "steamAccountName"
+  steamId: "76565432XXXXXXXXX"
+  track: true
