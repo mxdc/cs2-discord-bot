@@ -2,6 +2,8 @@
 
 A Discord bot that automatically tracks Counter-Strike 2 match results and sends notifications to your Discord server when games finish.
 
+<img width="490" height="180" alt="cs2-notif" src="https://github.com/user-attachments/assets/9291fca2-71df-47cd-82aa-5406a69b108d" />
+
 ## ✨ Features
 
 - **🔄 Match Tracking**: Continuously monitors multiple Steam accounts for completed CS2 matches
