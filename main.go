@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"log"
+	"sort"
 	"time"
 
 	"github.com/mxdc/cs2-discord-bot/config"
@@ -116,6 +117,12 @@ func findNewMatches(previous, current []leetify.MatchResult) []leetify.MatchResu
 			newMatches = append(newMatches, match)
 		}
 	}
+
+	// Sort newMatches by GameFinishedAt field, from oldest to newest
+	sort.Slice(newMatches, func(i, j int) bool {
+		return newMatches[i].GameFinishedAt.Before(newMatches[j].GameFinishedAt)
+	})
+
 	return newMatches
 }
 
