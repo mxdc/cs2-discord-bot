@@ -29,36 +29,6 @@ type SteamPlayer struct {
 // SteamPlayers is a collection of steam players with lookup methods
 type SteamPlayers []SteamPlayer
 
-// GetCountryCode finds and returns the country code for a given Steam ID
-func (sp SteamPlayers) GetCountryCode(steamID string) string {
-	for _, player := range sp {
-		if player.SteamID == steamID {
-			return player.CountryCode
-		}
-	}
-	return "" // Return empty string if not found
-}
-
-// GetPersonaName finds and returns the persona name for a given Steam ID
-func (sp SteamPlayers) GetPersonaName(steamID string) string {
-	for _, player := range sp {
-		if player.SteamID == steamID {
-			return player.PersonaName
-		}
-	}
-	return "" // Return empty string if not found
-}
-
-// HasCountryData checks if any players have country information
-func (sp SteamPlayers) HasCountryData() bool {
-	for _, player := range sp {
-		if player.CountryCode != "" {
-			return true
-		}
-	}
-	return false
-}
-
 // Client wraps the Steam Web API client
 type Client struct {
 	apiKey string
@@ -111,7 +81,7 @@ func (c *Client) GetSteamPlayers(steamIDs []string) (SteamPlayers, error) {
 	resp, err := http.Get(url)
 	if err != nil {
 		fmt.Printf("Steam: Call failed: %v\n", err)
-		return result, nil // Return with empty countries on error (graceful degradation)
+		return result, nil
 	}
 	defer resp.Body.Close()
 

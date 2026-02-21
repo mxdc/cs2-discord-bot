@@ -8,10 +8,10 @@ A Discord bot that automatically tracks Counter-Strike 2 match results and sends
 
 ## ✨ Features
 
-- **🔄 Match Tracking**: Continuously monitors multiple Steam accounts for completed CS2 matches
-- **⚡ Notifications**: Get Discord messages when matches end with detailed results
-- **🏆 MVP Recognition**: Highlights the top performer with country flags (when Steam API is configured)
-- **� Deduplication**: Prevents duplicate notifications when teammates play together in the same match
+- **Match Tracking**: Continuously monitors multiple Steam accounts for completed CS2 matches
+- **Notifications**: Get Discord messages when matches end with detailed results
+- **MVP Recognition**: Highlights the top performer with country flags (when Steam API is configured)
+- **Deduplication**: Prevents duplicate notifications when teammates play together in the same match
 
 ## Setup
 
