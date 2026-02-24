@@ -10,6 +10,7 @@ import (
 	"github.com/mxdc/cs2-discord-bot/discord"
 	"github.com/mxdc/cs2-discord-bot/leetify"
 	"github.com/mxdc/cs2-discord-bot/parser"
+	"github.com/mxdc/cs2-discord-bot/session"
 	"github.com/mxdc/cs2-discord-bot/steam"
 )
 
@@ -60,6 +61,46 @@ func matchManager(
 
 		// Send Discord webhook
 		discordClient.SendMatchResult(match)
+	}
+}
+
+func sessionManager(
+	cfg *config.AppConfig,
+	client *leetify.LeetifyClient,
+	in <-chan MatchDetected,
+) {
+	var currentSession *session.GameSession
+	sessions := []session.GameSession{}
+	seen := make(map[string]bool)
+
+	// discordClient := discord.NewWebhookClient(cfg.DiscordHook)
+	// steamClient := steam.NewSteamClient(cfg.SteamAPIKey)
+	log.Println("SessionManager: Started sessionManager, waiting for matches...")
+
+	for msg := range in {
+		if seen[msg.Match.GameID] {
+			continue
+		}
+
+		seen[msg.Match.GameID] = true
+		if currentSession == nil {
+			currentSession = session.NewSession(msg.Match)
+			sessions = append(sessions, *currentSession)
+			log.Printf("SessionManager: Started new session with match %s", msg.Match.GameID)
+			continue
+		}
+
+		// Check if the new match is within 30 minutes of the last match
+		if currentSession.IsMatchWithinSession(msg.Match) {
+			currentSession.AddMatch(msg.Match)
+			log.Printf("SessionManager: Added match %s to current session", msg.Match.GameID)
+			continue
+		}
+
+		// Start a new session
+		currentSession = session.NewSession(msg.Match)
+		sessions = append(sessions, *currentSession)
+		log.Printf("SessionManager: Started new session with match %s", msg.Match.GameID)
 	}
 }
 
