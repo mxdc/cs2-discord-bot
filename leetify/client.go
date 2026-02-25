@@ -107,6 +107,12 @@ func (c *LeetifyClient) GetPlayerMatches(playerConfig config.Player) ([]MatchRes
 type MatchDetailsResponse struct {
 	PlayerStats    []LeetifyPlayerStats `json:"playerStats"`
 	SteamShareCode string               `json:"steamShareCode"`
+	ID             string               `json:"id"`
+	DataSource     string               `json:"dataSource"`
+	FinishedAt     string               `json:"gameFinishedAt"`
+	IsCs2          bool                 `json:"isCs2"`
+	MapName        string               `json:"mapName"`
+	TeamScores     []int                `json:"teamScores"`
 }
 
 type LeetifyPlayerStats struct {

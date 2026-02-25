@@ -34,6 +34,40 @@ type Match struct {
 	Winner         int
 }
 
+func ParseMatchDetails(
+	game *leetify.MatchDetailsResponse,
+	steamPlayers steam.SteamPlayers,
+	players []config.Player,
+) Match {
+	gameTime, _ := time.Parse(time.RFC3339, game.FinishedAt)
+
+	mode := "unknown"
+	if game.DataSource == "matchmaking_competitive" {
+		mode = "Competitive"
+	} else if game.DataSource == "matchmaking" {
+		mode = "Premier"
+	} else if game.DataSource == "faceit" {
+		mode = "Faceit"
+	}
+
+	ownTeamPlayers, enemyTeamPlayers := getTeamsFromPlayerStats(game.PlayerStats, steamPlayers, players)
+
+	match := Match{
+		GameID:         game.ID,
+		GameFinishedAt: gameTime,
+		MapName:        game.MapName,
+		OwnTeam: Team{
+			Players: ownTeamPlayers,
+		},
+		EnemyTeam: Team{
+			Players: enemyTeamPlayers,
+		},
+		GameMode: mode,
+	}
+
+	return match
+}
+
 func ParseMatchResult(
 	matchSummary leetify.MatchResult,
 	matchDetails *leetify.MatchDetailsResponse,
@@ -125,4 +159,46 @@ func sortPlayersByMates(players []leetify.Player, configPlayers []config.Player)
 
 	// Return known players first, then unknown players
 	return append(myClanPlayers, unknownPlayers...)
+}
+
+func getTeamsFromPlayerStats(players []leetify.LeetifyPlayerStats, steamPlayers steam.SteamPlayers, configPlayers []config.Player) ([]Player, []Player) {
+	var ownTeamPlayers []Player
+	var enemyTeamPlayers []Player
+
+	for _, player := range players {
+		parsedPlayer := Player{
+			SteamID:     player.Steam64ID,
+			Kills:       player.TotalKills,
+			Deaths:      player.TotalDeaths,
+			Mvps:        player.Mvps,
+			KdRatio:     player.KdRatio,
+			TotalDamage: player.TotalDamage,
+		}
+
+		// Update with steam data if available
+		for _, sp := range steamPlayers {
+			if sp.SteamID == parsedPlayer.SteamID {
+				parsedPlayer.Name = sp.PersonaName
+				parsedPlayer.CountryCode = sp.CountryCode
+				break
+			}
+		}
+
+		// Determine if player is on own team or enemy team based on config
+		isOwnTeam := false
+		for _, configPlayer := range configPlayers {
+			if parsedPlayer.SteamID == configPlayer.SteamID {
+				isOwnTeam = true
+				break
+			}
+		}
+
+		if isOwnTeam {
+			ownTeamPlayers = append(ownTeamPlayers, parsedPlayer)
+		} else {
+			enemyTeamPlayers = append(enemyTeamPlayers, parsedPlayer)
+		}
+	}
+
+	return ownTeamPlayers, enemyTeamPlayers
 }
