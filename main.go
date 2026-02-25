@@ -73,7 +73,7 @@ func notifyMatch(cfg *config.AppConfig, client *leetify.LeetifyClient, matchId s
 
 	details, err := client.GetMatchDetails(matchId)
 	if err != nil {
-		log.Fatalf("Manager: Warning: failed to get match details: %v", err)
+		log.Fatalf("Failed to get match details: %v", err)
 	}
 
 	allSteamIDs := []string{}
@@ -84,16 +84,14 @@ func notifyMatch(cfg *config.AppConfig, client *leetify.LeetifyClient, matchId s
 	// Get Steam player data (names and countries)
 	steamPlayers, err := steamClient.GetSteamPlayers(allSteamIDs)
 	if err != nil {
-		log.Printf("Manager: Warning: failed to get steam players: %v", err)
 		// Continue without steam data
-		steamPlayers = steam.SteamPlayers{}
+		log.Printf("Failed to get steam players: %v", err)
 	}
 
 	match := parser.ParseMatchDetails(details, steamPlayers, cfg.Players)
 
 	// Send Discord webhook
 	discordClient.SendMatchResult(match)
-
 }
 
 func main() {

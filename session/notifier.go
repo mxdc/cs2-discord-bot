@@ -22,7 +22,6 @@ type MatchNotifier struct {
 	discordClient *discord.WebhookClient
 	steamClient   *steam.Client
 	in            <-chan MatchDetected
-	seen          map[string]bool
 }
 
 func NewMatchNotifier(
@@ -36,19 +35,19 @@ func NewMatchNotifier(
 		discordClient: discord.NewWebhookClient(cfg.DiscordHook),
 		steamClient:   steam.NewSteamClient(cfg.SteamAPIKey),
 		in:            in,
-		seen:          make(map[string]bool),
 	}
 }
 
 func (mm *MatchNotifier) HandleMatch() {
 	log.Println("Notifier: Started notifier, waiting for matches...")
+	seen := make(map[string]bool)
 
 	for msg := range mm.in {
-		if mm.seen[msg.Match.GameID] {
+		if seen[msg.Match.GameID] {
 			continue
 		}
 
-		mm.seen[msg.Match.GameID] = true
+		seen[msg.Match.GameID] = true
 		log.Println("Manager: New match detected:", msg.Match.GameID)
 
 		time.Sleep(5 * time.Second)
@@ -59,16 +58,14 @@ func (mm *MatchNotifier) HandleMatch() {
 		// Get Steam player data (names and countries)
 		steamPlayers, err := mm.steamClient.GetSteamPlayers(allSteamIDs)
 		if err != nil {
-			log.Printf("Manager: Warning: failed to get steam players: %v", err)
 			// Continue without steam data
-			steamPlayers = steam.SteamPlayers{}
+			log.Printf("Manager: Warning: failed to get steam players: %v", err)
 		}
 
 		details, err := mm.client.GetMatchDetails(msg.Match.GameID)
 		if err != nil {
-			log.Printf("Manager: Warning: failed to get match details: %v", err)
 			// Continue without match details
-			details = nil
+			log.Printf("Manager: Warning: failed to get match details: %v", err)
 		}
 
 		match := parser.ParseMatchResult(msg.Match, details, steamPlayers, mm.cfg.Players)

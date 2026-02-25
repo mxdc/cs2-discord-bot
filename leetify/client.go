@@ -76,7 +76,7 @@ func (c *LeetifyClient) GetPlayerMatches(playerConfig config.Player) ([]MatchRes
 	}
 	log.Printf("Leetify: Fetching matches from %s\n", url)
 
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create request: %w", err)
 	}

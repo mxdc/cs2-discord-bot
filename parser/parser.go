@@ -36,7 +36,7 @@ type Match struct {
 
 func ParseMatchDetails(
 	game *leetify.MatchDetailsResponse,
-	steamPlayers steam.SteamPlayers,
+	steamPlayers []steam.SteamPlayer,
 	players []config.Player,
 ) Match {
 	gameTime, _ := time.Parse(time.RFC3339, game.FinishedAt)
@@ -71,7 +71,7 @@ func ParseMatchDetails(
 func ParseMatchResult(
 	matchSummary leetify.MatchResult,
 	matchDetails *leetify.MatchDetailsResponse,
-	steamPlayers steam.SteamPlayers,
+	steamPlayers []steam.SteamPlayer,
 	players []config.Player,
 ) Match {
 	match := Match{
@@ -96,7 +96,7 @@ func ParseMatchResult(
 func parsePlayers(
 	players []leetify.Player,
 	matchDetails *leetify.MatchDetailsResponse,
-	steamPlayers steam.SteamPlayers,
+	steamPlayers []steam.SteamPlayer,
 	configPlayers []config.Player,
 ) []Player {
 	updatedPlayers := []Player{}
@@ -161,7 +161,11 @@ func sortPlayersByMates(players []leetify.Player, configPlayers []config.Player)
 	return append(myClanPlayers, unknownPlayers...)
 }
 
-func getTeamsFromPlayerStats(players []leetify.LeetifyPlayerStats, steamPlayers steam.SteamPlayers, configPlayers []config.Player) ([]Player, []Player) {
+func getTeamsFromPlayerStats(
+	players []leetify.LeetifyPlayerStats,
+	steamPlayers []steam.SteamPlayer,
+	configPlayers []config.Player,
+) ([]Player, []Player) {
 	var ownTeamPlayers []Player
 	var enemyTeamPlayers []Player
 

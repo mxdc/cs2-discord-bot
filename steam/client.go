@@ -26,9 +26,6 @@ type SteamPlayer struct {
 	PersonaName string
 }
 
-// SteamPlayers is a collection of steam players with lookup methods
-type SteamPlayers []SteamPlayer
-
 // Client wraps the Steam Web API client
 type Client struct {
 	apiKey string
@@ -42,9 +39,11 @@ func NewSteamClient(apiKey string) *Client {
 }
 
 // GetSteamPlayers gets country codes and persona names for multiple players
-func (c *Client) GetSteamPlayers(steamIDs []string) (SteamPlayers, error) {
+func (c *Client) GetSteamPlayers(steamIDs []string) ([]SteamPlayer, error) {
+	var result []SteamPlayer
+
 	if len(steamIDs) == 0 {
-		return SteamPlayers{}, nil
+		return result, nil
 	}
 
 	// Filter out invalid IDs
@@ -56,18 +55,7 @@ func (c *Client) GetSteamPlayers(steamIDs []string) (SteamPlayers, error) {
 	}
 
 	if len(validIDs) == 0 {
-		return SteamPlayers{}, nil
-	}
-
-	// Initialize result with empty data
-	var result SteamPlayers
-	for _, steamID := range validIDs {
-		result = append(result, SteamPlayer{
-			SteamID: steamID,
-			// Empty until we get API response
-			CountryCode: "",
-			PersonaName: "",
-		})
+		return result, nil
 	}
 
 	// Call Steam API with comma-separated Steam IDs
@@ -80,26 +68,26 @@ func (c *Client) GetSteamPlayers(steamIDs []string) (SteamPlayers, error) {
 
 	resp, err := http.Get(url)
 	if err != nil {
-		fmt.Printf("Steam: Call failed: %v\n", err)
-		return result, nil
+		return result, fmt.Errorf("Steam: Call failed: %v\n", err)
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode != http.StatusOK {
+		return result, fmt.Errorf("Steam: Request failed with status: %d", resp.StatusCode)
+	}
+
 	var data PlayerSummaryResponse
 	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
-		fmt.Printf("Steam: Failed to decode response: %v\n", err)
-		return result, nil
+		return result, fmt.Errorf("Steam: Failed to decode response: %v\n", err)
 	}
 
 	// Update result with actual data from API response
 	for _, apiPlayer := range data.Response.Players {
-		for i := range result {
-			if result[i].SteamID == apiPlayer.SteamID {
-				result[i].CountryCode = apiPlayer.LocCountryCode
-				result[i].PersonaName = apiPlayer.PersonaName
-				break
-			}
-		}
+		result = append(result, SteamPlayer{
+			SteamID:     apiPlayer.SteamID,
+			CountryCode: apiPlayer.LocCountryCode,
+			PersonaName: apiPlayer.PersonaName,
+		})
 	}
 
 	return result, nil

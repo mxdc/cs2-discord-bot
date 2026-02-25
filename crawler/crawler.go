@@ -11,10 +11,9 @@ import (
 )
 
 type Crawler struct {
-	client      *leetify.LeetifyClient
-	player      config.Player
-	out         chan<- session.MatchDetected
-	lastMatches []leetify.MatchResult
+	client *leetify.LeetifyClient
+	player config.Player
+	out    chan<- session.MatchDetected
 }
 
 func NewCrawler(
@@ -35,9 +34,9 @@ func (c *Crawler) StartCrawling() {
 	if err != nil {
 		log.Fatalf("%s: Error: %v", c.player.AccountName, err)
 	}
-	c.lastMatches = lastMatches
-	log.Printf("%s: %d previous matches", c.player.AccountName, len(c.lastMatches))
+	log.Printf("%s: %d previous matches", c.player.AccountName, len(lastMatches))
 	time.Sleep(2 * time.Minute)
+	// lastMatches := []leetify.MatchResult{}
 
 	for {
 		matches, err := c.client.GetPlayerMatches(c.player)
@@ -54,13 +53,13 @@ func (c *Crawler) StartCrawling() {
 		}
 
 		// Check for new matches
-		newMatches := findNewMatches(c.lastMatches, matches)
+		newMatches := findNewMatches(lastMatches, matches)
 		for _, match := range newMatches {
 			log.Printf("%s: New match found: %s", c.player.AccountName, match.GameID)
 			c.out <- session.MatchDetected{Match: match, Player: c.player}
 		}
 
-		c.lastMatches = matches
+		lastMatches = matches
 		log.Printf("%s: Checked %d matches, found %d new", c.player.AccountName, len(matches), len(newMatches))
 		time.Sleep(2 * time.Minute)
 	}
