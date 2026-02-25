@@ -67,13 +67,11 @@ func startCrawlers(client *leetify.LeetifyClient, cfg *config.AppConfig, matchCh
 
 func notifyMatch(cfg *config.AppConfig, client *leetify.LeetifyClient, matchId string) {
 	discordClient := discord.NewWebhookClient(cfg.DiscordHook)
-	sclient := steam.NewSteamClient(cfg.SteamAPIKey)
+	steamClient := steam.NewSteamClient(cfg.SteamAPIKey)
 
 	details, err := client.GetMatchDetails(matchId)
 	if err != nil {
-		log.Printf("Manager: Warning: failed to get match details: %v", err)
-		// Continue without match details
-		details = nil
+		log.Fatalf("Manager: Warning: failed to get match details: %v", err)
 	}
 
 	allSteamIDs := []string{}
@@ -82,7 +80,7 @@ func notifyMatch(cfg *config.AppConfig, client *leetify.LeetifyClient, matchId s
 	}
 
 	// Get Steam player data (names and countries)
-	steamPlayers, err := sclient.GetSteamPlayers(allSteamIDs)
+	steamPlayers, err := steamClient.GetSteamPlayers(allSteamIDs)
 	if err != nil {
 		log.Printf("Manager: Warning: failed to get steam players: %v", err)
 		// Continue without steam data

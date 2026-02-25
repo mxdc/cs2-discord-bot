@@ -76,6 +76,10 @@ func (c *WebhookClient) SendMatchResult(match parser.Match) {
 }
 
 func formatHeader(match parser.Match) string {
+	if match.OwnTeam.Score == 0 && match.EnemyTeam.Score == 0 {
+		return "A match has finished."
+	}
+
 	players := match.OwnTeam.Players
 
 	var header string
