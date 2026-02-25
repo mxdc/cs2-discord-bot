@@ -73,7 +73,7 @@ func (f *EmbedFieldFormatter) addPlayerMVPField(match parser.Match) {
 	field := EmbedField{
 		Name:   "",
 		Value:  fmt.Sprintf("⭐ *Match MVP*\u00A0\u00A0\u00A0\u00A0**%s**", playerLink),
-		Inline: true,
+		Inline: false,
 	}
 
 	f.fields = append(f.fields, field)

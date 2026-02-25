@@ -52,6 +52,8 @@ func startSessionNotifier(cfg *config.AppConfig, client *leetify.LeetifyClient) 
 }
 
 func startCrawlers(client *leetify.LeetifyClient, cfg *config.AppConfig, matchChan chan<- session.MatchDetected) {
+	log.Println("CS2: Starting crawler")
+
 	trackedPlayers := getTrackedPlayers(cfg.Players)
 	for i, player := range trackedPlayers {
 		crawler := crawler.NewCrawler(client, player, matchChan)
@@ -103,11 +105,12 @@ func main() {
 	cfg := config.MustLoadConfig(*configFile)
 	client := leetify.NewLeetifyClient(cfg.LeetifyAPIURL)
 
-	log.Println("CS2: Starting crawler")
-
-	if *oneshotId != "" {
+	if len(*oneshotId) > 0 {
 		notifyMatch(cfg, client, *oneshotId)
-	} else if *sessionMode {
+		return
+	}
+
+	if *sessionMode {
 		startSessionNotifier(cfg, client)
 	} else {
 		startMatchNotifier(cfg, client)
