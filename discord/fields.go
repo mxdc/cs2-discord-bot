@@ -32,7 +32,7 @@ func (f *EmbedFieldFormatter) addGameModeField(gameMode string) {
 	f.fields = append(f.fields, field)
 }
 
-func (f *EmbedFieldFormatter) addScoreField(match parser.Match) {
+func (f *EmbedFieldFormatter) addScoreField(match parser.MatchWithDetails) {
 	if match.OwnTeam.Score == 0 && match.EnemyTeam.Score == 0 {
 		return
 	}
@@ -62,7 +62,7 @@ func (f *EmbedFieldFormatter) addMapNameField(mapName string) {
 	f.fields = append(f.fields, field)
 }
 
-func (f *EmbedFieldFormatter) addPlayerMVPField(match parser.Match) {
+func (f *EmbedFieldFormatter) addPlayerMVPField(match parser.MatchWithDetails) {
 	if len(match.OwnTeam.Players) == 0 || len(match.EnemyTeam.Players) == 0 {
 		return
 	}

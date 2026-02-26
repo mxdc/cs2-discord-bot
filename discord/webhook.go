@@ -56,7 +56,7 @@ func NewWebhookClient(webhookURL string) *WebhookClient {
 }
 
 // SendMatchResult sends a Discord embed message for a match result
-func (c *WebhookClient) SendMatchResult(match parser.Match) {
+func (c *WebhookClient) SendMatchResult(match parser.MatchWithDetails) {
 	content := formatHeader(match)
 	embed := createMatchEmbed(match)
 	message := WebhookMessage{
@@ -75,7 +75,7 @@ func (c *WebhookClient) SendMatchResult(match parser.Match) {
 	}
 }
 
-func formatHeader(match parser.Match) string {
+func formatHeader(match parser.MatchWithDetails) string {
 	if match.OwnTeam.Score == 0 && match.EnemyTeam.Score == 0 {
 		return "A match has finished."
 	}
@@ -112,7 +112,7 @@ func formatHeader(match parser.Match) string {
 	return fmt.Sprintf("%s finished in a tie.", header)
 }
 
-func createMatchEmbed(match parser.Match) Embed {
+func createMatchEmbed(match parser.MatchWithDetails) Embed {
 	var color int
 
 	if match.Winner == 1 {
@@ -179,7 +179,7 @@ func formatPlayerLink(player parser.Player) string {
 	return playerName
 }
 
-func findMVP(match parser.Match) parser.Player {
+func findMVP(match parser.MatchWithDetails) parser.Player {
 	var mvp parser.Player
 
 	for _, player := range match.OwnTeam.Players {

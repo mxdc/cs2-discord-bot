@@ -25,7 +25,7 @@ type Team struct {
 	Players []Player
 }
 
-type Match struct {
+type MatchWithDetails struct {
 	GameID         string
 	GameMode       string
 	GameFinishedAt time.Time
@@ -53,7 +53,7 @@ type MatchResult struct {
 	GameMode  string
 }
 
-func ParseGameResponseFromLeetify(game leetify.LeetifyGameResponse) MatchResult {
+func parseGameResponseFromLeetify(game leetify.LeetifyGameResponse) MatchResult {
 	gameTime, _ := time.Parse(time.RFC3339, game.GameFinishedAt)
 
 	mode := "unknown"
@@ -126,63 +126,31 @@ func ParseGameResponseFromLeetify(game leetify.LeetifyGameResponse) MatchResult 
 	return match
 }
 
-func ParseMatchDetails(
-	game *leetify.MatchDetailsResponse,
-	steamPlayers []steam.SteamPlayer,
-	players []config.Player,
-) Match {
-	gameTime, _ := time.Parse(time.RFC3339, game.FinishedAt)
-
-	mode := "unknown"
-	if game.DataSource == "matchmaking_competitive" {
-		mode = "Competitive"
-	} else if game.DataSource == "matchmaking" {
-		mode = "Premier"
-	} else if game.DataSource == "faceit" {
-		mode = "Faceit"
-	}
-
-	ownTeamPlayers, enemyTeamPlayers := getTeamsFromPlayerStats(game.PlayerStats, steamPlayers, players)
-
-	match := Match{
-		GameID:         game.ID,
-		GameFinishedAt: gameTime,
-		MapName:        game.MapName,
-		OwnTeam: Team{
-			Players: ownTeamPlayers,
-		},
-		EnemyTeam: Team{
-			Players: enemyTeamPlayers,
-		},
-		GameMode: mode,
-	}
-
-	return match
-}
-
 func ParseMatchResultWithDetails(
-	matchSummary MatchResult,
+	game leetify.LeetifyGameResponse,
 	matchDetails *leetify.MatchDetailsResponse,
 	steamPlayers []steam.SteamPlayer,
 	players []config.Player,
-) Match {
-	match := Match{
-		GameID:         matchSummary.GameID,
-		GameMode:       matchSummary.GameMode,
-		GameFinishedAt: matchSummary.GameFinishedAt,
-		MapName:        matchSummary.MapName,
+) MatchWithDetails {
+	match := parseGameResponseFromLeetify(game)
+
+	matchWithDetails := MatchWithDetails{
+		GameID:         match.GameID,
+		GameMode:       match.GameMode,
+		GameFinishedAt: match.GameFinishedAt,
+		MapName:        match.MapName,
 		OwnTeam: Team{
-			Score:   matchSummary.OwnTeam.Score,
-			Players: parsePlayers(matchSummary.OwnTeam.Players, matchDetails, steamPlayers, players),
+			Score:   match.OwnTeam.Score,
+			Players: parsePlayers(match.OwnTeam.Players, matchDetails, steamPlayers, players),
 		},
 		EnemyTeam: Team{
-			Score:   matchSummary.EnemyTeam.Score,
-			Players: parsePlayers(matchSummary.EnemyTeam.Players, matchDetails, steamPlayers, []config.Player{}),
+			Score:   match.EnemyTeam.Score,
+			Players: parsePlayers(match.EnemyTeam.Players, matchDetails, steamPlayers, []config.Player{}),
 		},
-		Winner: matchSummary.Winner,
+		Winner: match.Winner,
 	}
 
-	return match
+	return matchWithDetails
 }
 
 func parsePlayers(
@@ -251,50 +219,4 @@ func sortPlayersByMates(players []Player, configPlayers []config.Player) []Playe
 
 	// Return known players first, then unknown players
 	return append(myClanPlayers, unknownPlayers...)
-}
-
-func getTeamsFromPlayerStats(
-	players []leetify.LeetifyPlayerStats,
-	steamPlayers []steam.SteamPlayer,
-	configPlayers []config.Player,
-) ([]Player, []Player) {
-	var ownTeamPlayers []Player
-	var enemyTeamPlayers []Player
-
-	for _, player := range players {
-		parsedPlayer := Player{
-			SteamID:     player.Steam64ID,
-			Kills:       player.TotalKills,
-			Deaths:      player.TotalDeaths,
-			Mvps:        player.Mvps,
-			KdRatio:     player.KdRatio,
-			TotalDamage: player.TotalDamage,
-		}
-
-		// Update with steam data if available
-		for _, sp := range steamPlayers {
-			if sp.SteamID == parsedPlayer.SteamID {
-				parsedPlayer.Name = sp.PersonaName
-				parsedPlayer.CountryCode = sp.CountryCode
-				break
-			}
-		}
-
-		// Determine if player is on own team or enemy team based on config
-		isOwnTeam := false
-		for _, configPlayer := range configPlayers {
-			if parsedPlayer.SteamID == configPlayer.SteamID {
-				isOwnTeam = true
-				break
-			}
-		}
-
-		if isOwnTeam {
-			ownTeamPlayers = append(ownTeamPlayers, parsedPlayer)
-		} else {
-			enemyTeamPlayers = append(enemyTeamPlayers, parsedPlayer)
-		}
-	}
-
-	return ownTeamPlayers, enemyTeamPlayers
 }

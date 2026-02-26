@@ -6,7 +6,6 @@ import (
 
 	"github.com/mxdc/cs2-discord-bot/config"
 	"github.com/mxdc/cs2-discord-bot/leetify"
-	"github.com/mxdc/cs2-discord-bot/parser"
 )
 
 type SessionManager struct {
@@ -52,26 +51,26 @@ func (sm *SessionManager) HandleIncomingMatches() {
 			}
 			seen[msg.Match.GameId] = true
 
-			match := parser.ParseGameResponseFromLeetify(msg.Match)
-			log.Printf("SessionManager: New match detected: %s", match.GameID)
+			// match := parser.ParseGameResponseFromLeetify(msg.Match)
+			log.Printf("SessionManager: New match detected: %s", msg.Match.GameId)
 
 			if currentSession == nil {
-				currentSession = NewSession(match)
-				log.Printf("SessionManager: Started new session with match %s", match.GameID)
+				currentSession = NewSession(msg.Match)
+				log.Printf("SessionManager: Started new session with match %s", msg.Match.GameId)
 				continue
 			}
 
-			if currentSession.IsMatchWithinSession(match) {
-				currentSession.AddMatch(match)
-				log.Printf("SessionManager: Added match %s to current session", match.GameID)
+			if currentSession.IsMatchWithinSession(msg.Match) {
+				currentSession.AddMatch(msg.Match)
+				log.Printf("SessionManager: Added match %s to current session", msg.Match.GameId)
 				continue
 			}
 
 			log.Printf("SessionManager: Match too far in time, flushing session")
 			sm.out <- *currentSession
 
-			currentSession = NewSession(match)
-			log.Printf("SessionManager: Started new session with match %s", match.GameID)
+			currentSession = NewSession(msg.Match)
+			log.Printf("SessionManager: Started new session with match %s", msg.Match.GameId)
 
 		case <-ticker.C:
 			if currentSession == nil {
