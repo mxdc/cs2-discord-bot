@@ -56,9 +56,9 @@ func NewWebhookClient(webhookURL string) *WebhookClient {
 }
 
 // SendMatchResult sends a Discord embed message for a match result
-func (c *WebhookClient) SendMatchResult(match parser.Match) {
-	content := c.formatHeader(match)
-	embed := c.createMatchEmbed(match)
+func (c *WebhookClient) SendMatchResult(match parser.MatchWithDetails) {
+	content := formatHeader(match)
+	embed := createMatchEmbed(match)
 	message := WebhookMessage{
 		Content:  content,
 		TTS:      false,
@@ -75,7 +75,11 @@ func (c *WebhookClient) SendMatchResult(match parser.Match) {
 	}
 }
 
-func (c *WebhookClient) formatHeader(match parser.Match) string {
+func formatHeader(match parser.MatchWithDetails) string {
+	if match.OwnTeam.Score == 0 && match.EnemyTeam.Score == 0 {
+		return "A match has finished."
+	}
+
 	players := match.OwnTeam.Players
 
 	var header string
@@ -108,8 +112,7 @@ func (c *WebhookClient) formatHeader(match parser.Match) string {
 	return fmt.Sprintf("%s finished in a tie.", header)
 }
 
-// createMatchEmbed creates a simplified Discord embed for the match result
-func (c *WebhookClient) createMatchEmbed(match parser.Match) Embed {
+func createMatchEmbed(match parser.MatchWithDetails) Embed {
 	var color int
 
 	if match.Winner == 1 {
@@ -120,62 +123,19 @@ func (c *WebhookClient) createMatchEmbed(match parser.Match) Embed {
 		color = ColorGray
 	}
 
-	// Format scores
-	score := fmt.Sprintf("%d - %d", match.OwnTeam.Score, match.EnemyTeam.Score)
+	fieldsFormatter := NewEmbedFieldFormatter()
+	fieldsFormatter.addGameModeField(match.GameMode)
+	fieldsFormatter.addScoreField(match)
+	fieldsFormatter.addMapNameField(match.MapName)
+	fieldsFormatter.addPlayerMVPField(match)
+	fieldsFormatter.addMatchLinkField(match.GameID)
 
-	// Create match link using Leetify format
-	matchLink := fmt.Sprintf("▸ [View match details on Leetify](https://leetify.com/public/match-details/%s/details-general)", match.GameID)
-	matchMVP := findMVP(match)
-	playerLink := formatPlayerLink(matchMVP)
-
-	// team1 := formatTeamMembers(match.OwnTeam)
-	// team2 := formatTeamMembers(match.EnemyTeam)
+	formattedFields := fieldsFormatter.GetFields()
 
 	embed := Embed{
-		Title: "",
-		Color: color,
-		Fields: []EmbedField{
-			{
-				Name:   "",
-				Value:  fmt.Sprintf("*Mode* **%s**", match.GameMode),
-				Inline: true,
-			},
-			{
-				Name:   "",
-				Value:  fmt.Sprintf("*Score* **%s**", score),
-				Inline: true,
-			},
-			{
-				Name:   "",
-				Value:  fmt.Sprintf("*Map* **%s**", match.MapName),
-				Inline: true,
-			},
-			// {
-			// 	Name:   "",
-			// 	Value:  fmt.Sprintf("*Your Team*\n%s", team1),
-			// 	Inline: true,
-			// },
-			// {
-			// 	Name:   "",
-			// 	Value:  fmt.Sprintf("*Opponents*\n%s", team2),
-			// 	Inline: true,
-			// },
-			{
-				Name:   "",
-				Value:  fmt.Sprintf("⭐ *Match MVP*\u00A0\u00A0\u00A0\u00A0**%s**", playerLink),
-				Inline: true,
-			},
-			// {
-			// 	Name:   "",
-			// 	Value:  formatPlayerLink(matchMVP),
-			// 	Inline: true,
-			// },
-			{
-				Name:   "",
-				Value:  matchLink,
-				Inline: false,
-			},
-		},
+		Title:  "",
+		Color:  color,
+		Fields: formattedFields,
 	}
 
 	return embed
@@ -208,23 +168,6 @@ func (c *WebhookClient) sendWebhook(message WebhookMessage) error {
 	return nil
 }
 
-// func formatTeamMembers(team parser.Team) string {
-// 	var names string
-
-// 	for i, player := range team.Players {
-// 		playerName := cases.Title(language.English).String(strings.ToLower(player.Name))
-// 		playerWithLink := fmt.Sprintf("[%s](https://leetify.com/public/profile/%s)", playerName, player.SteamID)
-// 		playerFlag := CountryCodeToFlag(player.CountryCode)
-// 		playerFull := fmt.Sprintf("%s %s", playerFlag, playerWithLink)
-// 		names += playerFull
-// 		if i < len(team.Players)-1 {
-// 			names += "\n"
-// 		}
-// 	}
-
-// 	return names
-// }
-
 func formatPlayerLink(player parser.Player) string {
 	playerName := fmt.Sprintf("[%s](https://leetify.com/public/profile/%s)", player.Name, player.SteamID)
 
@@ -236,7 +179,7 @@ func formatPlayerLink(player parser.Player) string {
 	return playerName
 }
 
-func findMVP(match parser.Match) parser.Player {
+func findMVP(match parser.MatchWithDetails) parser.Player {
 	var mvp parser.Player
 
 	for _, player := range match.OwnTeam.Players {
