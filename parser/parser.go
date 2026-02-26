@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"slices"
 	"time"
 
 	"github.com/mxdc/cs2-discord-bot/config"
@@ -32,6 +33,97 @@ type Match struct {
 	OwnTeam        Team
 	EnemyTeam      Team
 	Winner         int
+}
+
+type MatchResult struct {
+	GameID              string
+	OwnTeamSteam64Ids   []string
+	EnemyTeamSteam64Ids []string
+	DataSource          string
+	GameFinishedAt      time.Time
+	IsCs2               bool
+	MapName             string
+	MatchResult         string
+	RankType            int
+	Scores              []int
+	// Computed fields for compatibility
+	OwnTeam   Team
+	EnemyTeam Team
+	Winner    int
+	GameMode  string
+}
+
+func ParseGameResponseFromLeetify(game leetify.LeetifyGameResponse) MatchResult {
+	gameTime, _ := time.Parse(time.RFC3339, game.GameFinishedAt)
+
+	mode := "unknown"
+	if game.DataSource == "matchmaking_competitive" {
+		mode = "Competitive"
+	} else if game.DataSource == "matchmaking" {
+		mode = "Premier"
+	} else if game.DataSource == "faceit" {
+		mode = "Faceit"
+	}
+
+	match := MatchResult{
+		GameID:              game.GameId,
+		OwnTeamSteam64Ids:   game.OwnTeamSteam64Ids,
+		EnemyTeamSteam64Ids: game.EnemyTeamSteam64Ids,
+		DataSource:          game.DataSource,
+		GameFinishedAt:      gameTime,
+		IsCs2:               game.IsCs2,
+		MapName:             game.MapName,
+		MatchResult:         game.MatchResult,
+		RankType:            game.RankType,
+		Scores:              game.Scores,
+		// Computed
+		GameMode: mode,
+	}
+
+	// Create team structures based on Leetify's own/enemy team distinction
+	var ownTeamPlayers []Player
+	for _, steamID := range game.OwnTeamSteam64Ids {
+		ownTeamPlayers = append(ownTeamPlayers, Player{
+			SteamID: steamID,
+		})
+	}
+
+	var enemyTeamPlayers []Player
+	for _, steamID := range game.EnemyTeamSteam64Ids {
+		enemyTeamPlayers = append(enemyTeamPlayers, Player{
+			SteamID: steamID,
+		})
+	}
+
+	// Determine winner based on match result from Leetify
+	var ownTeamScore, enemyTeamScore int
+	switch game.MatchResult {
+	case "win":
+		match.Winner = 1 // Own team won
+		// Own team has higher score, enemy team has lower score
+		ownTeamScore = slices.Max(game.Scores)
+		enemyTeamScore = slices.Min(game.Scores)
+	case "loss":
+		match.Winner = 2 // Enemy team won
+		// Enemy team has higher score, own team has lower score
+		enemyTeamScore = slices.Max(game.Scores)
+		ownTeamScore = slices.Min(game.Scores)
+	default:
+		match.Winner = 0 // tie or unknown
+		// Assign in array order since scores are equal or unknown
+		ownTeamScore, enemyTeamScore = game.Scores[0], game.Scores[1]
+	}
+
+	match.OwnTeam = Team{
+		Score:   ownTeamScore,
+		Players: ownTeamPlayers,
+	}
+	match.EnemyTeam = Team{
+		Score:   enemyTeamScore,
+		Players: enemyTeamPlayers,
+	}
+
+	return match
 }
 
 func ParseMatchDetails(
@@ -68,8 +160,8 @@ func ParseMatchDetails(
 	return match
 }
 
-func ParseMatchResult(
-	matchSummary leetify.MatchResult,
+func ParseMatchResultWithDetails(
+	matchSummary MatchResult,
 	matchDetails *leetify.MatchDetailsResponse,
 	steamPlayers []steam.SteamPlayer,
 	players []config.Player,
@@ -94,7 +186,7 @@ func ParseMatchResult(
 }
 
 func parsePlayers(
-	players []leetify.Player,
+	players []Player,
 	matchDetails *leetify.MatchDetailsResponse,
 	steamPlayers []steam.SteamPlayer,
 	configPlayers []config.Player,
@@ -135,11 +227,11 @@ func parsePlayers(
 }
 
 // sortPlayersByMates puts known players from config first, then unknown players
-func sortPlayersByMates(players []leetify.Player, configPlayers []config.Player) []leetify.Player {
+func sortPlayersByMates(players []Player, configPlayers []config.Player) []Player {
 	// myClanPlayers will contain known players defined in config file
-	var myClanPlayers []leetify.Player
+	var myClanPlayers []Player
 	// unknownPlayers will contain players absent from config file
-	var unknownPlayers []leetify.Player
+	var unknownPlayers []Player
 
 	for _, player := range players {
 		isKnown := false

@@ -12,7 +12,7 @@ import (
 )
 
 type MatchDetected struct {
-	Match  leetify.MatchResult
+	Match  leetify.LeetifyGameResponse
 	Player config.Player
 }
 
@@ -43,17 +43,18 @@ func (mm *MatchNotifier) HandleMatch() {
 	seen := make(map[string]bool)
 
 	for msg := range mm.in {
-		if seen[msg.Match.GameID] {
+		if seen[msg.Match.GameId] {
 			continue
 		}
 
-		seen[msg.Match.GameID] = true
-		log.Println("Manager: New match detected:", msg.Match.GameID)
+		seen[msg.Match.GameId] = true
+		match := parser.ParseGameResponseFromLeetify(msg.Match)
+		log.Println("Manager: New match detected:", match.GameID)
 
 		time.Sleep(5 * time.Second)
 
 		// Get all Steam IDs from both teams
-		allSteamIDs := append(msg.Match.OwnTeamSteam64Ids, msg.Match.EnemyTeamSteam64Ids...)
+		allSteamIDs := append(match.OwnTeamSteam64Ids, match.EnemyTeamSteam64Ids...)
 
 		// Get Steam player data (names and countries)
 		steamPlayers, err := mm.steamClient.GetSteamPlayers(allSteamIDs)
@@ -62,16 +63,16 @@ func (mm *MatchNotifier) HandleMatch() {
 			log.Printf("Manager: Warning: failed to get steam players: %v", err)
 		}
 
-		details, err := mm.client.GetMatchDetails(msg.Match.GameID)
+		details, err := mm.client.GetMatchDetails(match.GameID)
 		if err != nil {
 			// Continue without match details
 			log.Printf("Manager: Warning: failed to get match details: %v", err)
 		}
 
-		match := parser.ParseMatchResult(msg.Match, details, steamPlayers, mm.cfg.Players)
+		matchWithDetails := parser.ParseMatchResultWithDetails(match, details, steamPlayers, mm.cfg.Players)
 
 		// Send Discord webhook
-		mm.discordClient.SendMatchResult(match)
+		mm.discordClient.SendMatchResult(matchWithDetails)
 	}
 }
 

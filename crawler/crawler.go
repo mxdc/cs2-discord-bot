@@ -36,7 +36,7 @@ func (c *Crawler) StartCrawling() {
 	}
 	log.Printf("%s: %d previous matches", c.player.AccountName, len(lastMatches))
 	time.Sleep(2 * time.Minute)
-	// lastMatches := []leetify.MatchResult{}
+	// lastMatches := []leetify.LeetifyGameResponse{}
 
 	for {
 		matches, err := c.client.GetPlayerMatches(c.player)
@@ -55,7 +55,7 @@ func (c *Crawler) StartCrawling() {
 		// Check for new matches
 		newMatches := findNewMatches(lastMatches, matches)
 		for _, match := range newMatches {
-			log.Printf("%s: New match found: %s", c.player.AccountName, match.GameID)
+			log.Printf("%s: New match found: %s", c.player.AccountName, match.GameId)
 			c.out <- session.MatchDetected{Match: match, Player: c.player}
 		}
 
@@ -66,22 +66,27 @@ func (c *Crawler) StartCrawling() {
 }
 
 // findNewMatches returns matches that are in current but not in previous
-func findNewMatches(previous, current []leetify.MatchResult) []leetify.MatchResult {
+func findNewMatches(previous, current []leetify.LeetifyGameResponse) []leetify.LeetifyGameResponse {
 	prevSet := make(map[string]bool)
 	for _, match := range previous {
-		prevSet[match.GameID] = true
+		prevSet[match.GameId] = true
 	}
 
-	var newMatches []leetify.MatchResult
+	var newMatches []leetify.LeetifyGameResponse
 	for _, match := range current {
-		if !prevSet[match.GameID] {
+		if !prevSet[match.GameId] {
 			newMatches = append(newMatches, match)
 		}
 	}
 
 	// Sort newMatches by GameFinishedAt field, from oldest to newest
 	sort.Slice(newMatches, func(i, j int) bool {
-		return newMatches[i].GameFinishedAt.Before(newMatches[j].GameFinishedAt)
+		currentTimeI, errI := time.Parse(time.RFC3339, newMatches[i].GameFinishedAt)
+		currentTimeJ, errJ := time.Parse(time.RFC3339, newMatches[j].GameFinishedAt)
+		if errI != nil || errJ != nil {
+			return false
+		}
+		return currentTimeI.Before(currentTimeJ)
 	})
 
 	return newMatches
