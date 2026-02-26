@@ -51,7 +51,6 @@ func (sm *SessionManager) HandleIncomingMatches() {
 			}
 			seen[msg.Match.GameId] = true
 
-			// match := parser.ParseGameResponseFromLeetify(msg.Match)
 			log.Printf("SessionManager: New match detected: %s", msg.Match.GameId)
 
 			if currentSession == nil {
