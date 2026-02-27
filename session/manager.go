@@ -3,16 +3,11 @@ package session
 import (
 	"log"
 	"time"
-
-	"github.com/mxdc/cs2-discord-bot/config"
-	"github.com/mxdc/cs2-discord-bot/leetify"
 )
 
 type SessionManager struct {
-	cfg    *config.AppConfig
-	client *leetify.LeetifyClient
-	in     <-chan MatchDetected
-	out    chan<- GameSession
+	in  <-chan MatchDetected
+	out chan<- GameSession
 }
 
 const (
@@ -21,16 +16,12 @@ const (
 )
 
 func NewSessionManager(
-	cfg *config.AppConfig,
-	client *leetify.LeetifyClient,
 	in <-chan MatchDetected,
 	out chan<- GameSession,
 ) *SessionManager {
 	return &SessionManager{
-		cfg:    cfg,
-		client: client,
-		in:     in,
-		out:    out,
+		in:  in,
+		out: out,
 	}
 }
 

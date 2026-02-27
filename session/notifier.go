@@ -17,11 +17,9 @@ type MatchDetected struct {
 }
 
 type MatchNotifier struct {
-	cfg           *config.AppConfig
-	client        *leetify.LeetifyClient
-	discordClient *discord.WebhookClient
-	steamClient   *steam.Client
-	in            <-chan MatchDetected
+	cfg    *config.AppConfig
+	client *leetify.LeetifyClient
+	in     <-chan MatchDetected
 }
 
 func NewMatchNotifier(
@@ -30,17 +28,17 @@ func NewMatchNotifier(
 	in <-chan MatchDetected,
 ) *MatchNotifier {
 	return &MatchNotifier{
-		cfg:           cfg,
-		client:        client,
-		discordClient: discord.NewWebhookClient(cfg.DiscordHook),
-		steamClient:   steam.NewSteamClient(cfg.SteamAPIKey),
-		in:            in,
+		cfg:    cfg,
+		client: client,
+		in:     in,
 	}
 }
 
 func (mm *MatchNotifier) HandleMatch() {
 	log.Println("Notifier: Started notifier, waiting for matches...")
 	seen := make(map[string]bool)
+	discordClient := discord.NewWebhookClient(mm.cfg.DiscordHook)
+	steamClient := steam.NewSteamClient(mm.cfg.SteamAPIKey)
 
 	for msg := range mm.in {
 		if seen[msg.Match.GameId] {
@@ -54,7 +52,7 @@ func (mm *MatchNotifier) HandleMatch() {
 		allSteamIDs := append(msg.Match.OwnTeamSteam64Ids, msg.Match.EnemyTeamSteam64Ids...)
 
 		// Get Steam player data (names and countries)
-		steamPlayers, err := mm.steamClient.GetSteamPlayers(allSteamIDs)
+		steamPlayers, err := steamClient.GetSteamPlayers(allSteamIDs)
 		if err != nil {
 			// Continue without steam data
 			log.Printf("Manager: Warning: failed to get steam players: %v", err)
@@ -69,32 +67,64 @@ func (mm *MatchNotifier) HandleMatch() {
 		matchWithDetails := parser.ParseMatchResultWithDetails(msg.Match, matchDetails, steamPlayers, mm.cfg.Players)
 
 		// Send Discord webhook
-		mm.discordClient.SendMatchResult(matchWithDetails)
+		discordClient.SendMatchResult(matchWithDetails)
 	}
 }
 
 type SessionNotifier struct {
-	cfg *config.AppConfig
-	in  <-chan GameSession
+	client *leetify.LeetifyClient
+	cfg    *config.AppConfig
+	in     <-chan GameSession
 }
 
 func NewSessionNotifier(
+	client *leetify.LeetifyClient,
 	cfg *config.AppConfig,
 	in <-chan GameSession,
 ) *SessionNotifier {
 	return &SessionNotifier{
-		cfg: cfg,
-		in:  in,
+		client: client,
+		cfg:    cfg,
+		in:     in,
 	}
 }
 
 func (sn *SessionNotifier) HandleSession() {
 	log.Println("SessionNotifier: Started sessionNotifier, waiting for completed sessions...")
 
+	discordClient := discord.NewWebhookClient(sn.cfg.DiscordHook)
+	steamClient := steam.NewSteamClient(sn.cfg.SteamAPIKey)
+
 	for completedSession := range sn.in {
 		log.Printf("SessionNotifier: New session received with %d matches", len(completedSession.Matches))
-		// TODO: Implement session notification logic here
-		// This is where you would process the completed session
-		// (e.g., create Discord embed, send webhook, etc.)
+
+		allSteamIDs := completedSession.GetSteamIDs()
+		// Get Steam player data (names and countries)
+		steamPlayers, err := steamClient.GetSteamPlayers(allSteamIDs)
+		if err != nil {
+			// Continue without steam data
+			log.Printf("SessionNotifier: Warning: failed to get steam players: %v", err)
+		}
+
+		sessionWithDetails := parser.SessionWithDetails{TrackedPlayers: sn.cfg.Players}
+
+		for i, game := range completedSession.Matches {
+			matchDetails, err := sn.client.GetMatchDetails(game.GameId)
+			if err != nil {
+				// Continue without match details
+				log.Printf("SessionNotifier: Warning: failed to get match details: %v", err)
+			}
+
+			matchWithDetails := parser.ParseMatchResultWithDetails(game, matchDetails, steamPlayers, sn.cfg.Players)
+			sessionWithDetails.Matches = append(sessionWithDetails.Matches, matchWithDetails)
+
+			// Avoid rate limit failure
+			if i < len(completedSession.Matches)-2 {
+				time.Sleep(10 * time.Second)
+			}
+		}
+
+		// Send Discord webhook
+		discordClient.SendSessionResult(sessionWithDetails)
 	}
 }

@@ -2,6 +2,7 @@ package discord
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/mxdc/cs2-discord-bot/parser"
 )
@@ -84,13 +85,79 @@ func (f *EmbedFieldFormatter) addMatchLinkField(gameID string) {
 		return
 	}
 
-	matchLink := fmt.Sprintf("▸ [View match details on Leetify](https://leetify.com/public/match-details/%s/details-general)", gameID)
+	matchLink := fmt.Sprintf("https://leetify.com/public/match-details/%s/details-general", gameID)
+	matchLinkLabel := fmt.Sprintf("▸ [View match details on Leetify](%s)", matchLink)
 
 	field := EmbedField{
 		Name:   "",
-		Value:  matchLink,
+		Value:  matchLinkLabel,
 		Inline: false,
 	}
 
 	f.fields = append(f.fields, field)
+}
+
+func (f *EmbedFieldFormatter) addSessionMatchesField(matches []parser.MatchWithDetails) {
+	if len(matches) == 0 {
+		return
+	}
+
+	lines := make([]string, len(matches))
+	for i, match := range matches {
+		resultEmoji := getResultPrefixEmoji(match.Winner)
+		matchLink := fmt.Sprintf("https://leetify.com/public/match-details/%s/details-general", match.GameID)
+		matchResult := fmt.Sprintf(
+			"%s %s · %d-%d · %s",
+			resultEmoji,
+			match.GameMode,
+			match.OwnTeam.Score,
+			match.EnemyTeam.Score,
+			match.MapName,
+		)
+		matchResultWithLink := fmt.Sprintf("▸ [**%s**](%s)", matchResult, matchLink)
+		lines[i] = matchResultWithLink
+	}
+
+	field := EmbedField{
+		Name:   "",
+		Value:  strings.Join(lines, "\n"),
+		Inline: false,
+	}
+	f.fields = append(f.fields, field)
+}
+
+func (f *EmbedFieldFormatter) addSessionTeammatesField(session parser.SessionWithDetails) {
+	best := session.BestKillDeathTeammate()
+	worst := session.WorstKillDeathTeammate()
+
+	bestPlayerLink := formatPlayerLink(best)
+	worstPlayerLink := formatPlayerLink(worst)
+
+	bestTeammateStr := fmt.Sprintf(":star: *Best Teammate*\u00A0\u00A0\u00A0\u00A0**%s**", bestPlayerLink)
+	worstTeammateStr := fmt.Sprintf(":poop: *Worst Teammate*\u00A0\u00A0\u00A0\u00A0**%s**", worstPlayerLink)
+
+	field := EmbedField{
+		Name:   "",
+		Value:  fmt.Sprintf("%s\n%s", bestTeammateStr, worstTeammateStr),
+		Inline: false,
+	}
+
+	f.fields = append(f.fields, field)
+}
+
+func findMVP(match parser.MatchWithDetails) parser.Player {
+	var mvp parser.Player
+
+	for _, player := range match.OwnTeam.Players {
+		if player.Mvps > mvp.Mvps || (player.Mvps == mvp.Mvps && player.Kills > mvp.Kills) {
+			mvp = player
+		}
+	}
+	for _, player := range match.EnemyTeam.Players {
+		if player.Mvps > mvp.Mvps || (player.Mvps == mvp.Mvps && player.Kills > mvp.Kills) {
+			mvp = player
+		}
+	}
+
+	return mvp
 }

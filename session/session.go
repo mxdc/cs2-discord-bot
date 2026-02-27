@@ -31,3 +31,12 @@ func (s *GameSession) IsMatchWithinSession(game leetify.LeetifyGameResponse) boo
 	matchEndTime, _ := time.Parse(time.RFC3339, game.GameFinishedAt)
 	return matchEndTime.Sub(s.LastMatchEndTime) <= 30*time.Minute
 }
+
+func (s *GameSession) GetSteamIDs() []string {
+	allSteamIDs := []string{}
+	for _, game := range s.Matches {
+		allSteamIDs = append(allSteamIDs, game.OwnTeamSteam64Ids...)
+		allSteamIDs = append(allSteamIDs, game.EnemyTeamSteam64Ids...)
+	}
+	return allSteamIDs
+}

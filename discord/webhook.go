@@ -6,12 +6,9 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/mxdc/cs2-discord-bot/parser"
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
 )
 
 type WebhookClient struct {
@@ -44,6 +41,7 @@ const (
 	ColorGreen = 3066993  // Victory green
 	ColorRed   = 15158332 // Defeat red
 	ColorGray  = 9807270  // Neutral gray
+	ColorBlue  = 3447003  // Information blue
 )
 
 func NewWebhookClient(webhookURL string) *WebhookClient {
@@ -57,7 +55,7 @@ func NewWebhookClient(webhookURL string) *WebhookClient {
 
 // SendMatchResult sends a Discord embed message for a match result
 func (c *WebhookClient) SendMatchResult(match parser.MatchWithDetails) {
-	content := formatHeader(match)
+	content := formatMatchHeader(match)
 	embed := createMatchEmbed(match)
 	message := WebhookMessage{
 		Content:  content,
@@ -75,32 +73,36 @@ func (c *WebhookClient) SendMatchResult(match parser.MatchWithDetails) {
 	}
 }
 
-func formatHeader(match parser.MatchWithDetails) string {
+// SendSessionResult sends a Discord embed message for a session result
+func (c *WebhookClient) SendSessionResult(session parser.SessionWithDetails) {
+	if len(session.Matches) == 1 {
+		c.SendMatchResult(session.Matches[0])
+		return
+	}
+
+	sessionResultBuiler := NewSessionResultBuilder(session)
+	message := sessionResultBuiler.BuildMessage()
+	log.Println("Discord: Sending Discord notification...")
+
+	if err := c.sendWebhook(message); err != nil {
+		log.Printf("Discord: Error sending Discord webhook: %v", err)
+	} else {
+		log.Println("Discord: Discord notification sent successfully")
+	}
+}
+
+func formatMatchHeader(match parser.MatchWithDetails) string {
 	if match.OwnTeam.Score == 0 && match.EnemyTeam.Score == 0 {
 		return "A match has finished."
 	}
 
 	players := match.OwnTeam.Players
 
-	var header string
-	if match.Winner == 1 {
-		header += "🏆 "
-	} else if match.Winner == 2 {
-		header += "💀 "
-	} else {
-		header += "🤝 "
-	}
+	resultEmoji := getResultPrefixEmoji(match.Winner)
 
 	// Build the player names string
-	for i, player := range players {
-		playerName := cases.Title(language.English).String(strings.ToLower(player.Name))
-		header += playerName
-		if i < len(players)-2 {
-			header += ", "
-		} else if i < len(players)-1 {
-			header += " and "
-		}
-	}
+	names := formatPlayerNamesAsTitle(players)
+	header := fmt.Sprintf("%s %s", resultEmoji, names)
 
 	if match.Winner == 1 {
 		return fmt.Sprintf("%s won the match!", header)
@@ -166,32 +168,4 @@ func (c *WebhookClient) sendWebhook(message WebhookMessage) error {
 	}
 
 	return nil
-}
-
-func formatPlayerLink(player parser.Player) string {
-	playerName := fmt.Sprintf("[%s](https://leetify.com/public/profile/%s)", player.Name, player.SteamID)
-
-	if player.CountryCode != "" {
-		flag := CountryCodeToFlag(player.CountryCode)
-		playerName = fmt.Sprintf("%s %s", flag, playerName)
-	}
-
-	return playerName
-}
-
-func findMVP(match parser.MatchWithDetails) parser.Player {
-	var mvp parser.Player
-
-	for _, player := range match.OwnTeam.Players {
-		if player.Mvps > mvp.Mvps || (player.Mvps == mvp.Mvps && player.Kills > mvp.Kills) {
-			mvp = player
-		}
-	}
-	for _, player := range match.EnemyTeam.Players {
-		if player.Mvps > mvp.Mvps || (player.Mvps == mvp.Mvps && player.Kills > mvp.Kills) {
-			mvp = player
-		}
-	}
-
-	return mvp
 }
