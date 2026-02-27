@@ -42,7 +42,7 @@ func (b *SessionResultBuilder) createSessionEmbed() Embed {
 	fields := fieldsFormatter.GetFields()
 
 	return Embed{
-		Title:  "",
+		Title:  "Session summary",
 		Fields: fields,
 		Color:  ColorBlue,
 	}

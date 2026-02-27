@@ -93,18 +93,9 @@ func (sn *SessionNotifier) HandleSession() {
 	log.Println("SessionNotifier: Started sessionNotifier, waiting for completed sessions...")
 
 	discordClient := discord.NewWebhookClient(sn.cfg.DiscordHook)
-	steamClient := steam.NewSteamClient(sn.cfg.SteamAPIKey)
 
 	for completedSession := range sn.in {
 		log.Printf("SessionNotifier: New session received with %d matches", len(completedSession.Matches))
-
-		allSteamIDs := completedSession.GetSteamIDs()
-		// Get Steam player data (names and countries)
-		steamPlayers, err := steamClient.GetSteamPlayers(allSteamIDs)
-		if err != nil {
-			// Continue without steam data
-			log.Printf("SessionNotifier: Warning: failed to get steam players: %v", err)
-		}
 
 		sessionWithDetails := parser.SessionWithDetails{TrackedPlayers: sn.cfg.Players}
 
@@ -115,6 +106,8 @@ func (sn *SessionNotifier) HandleSession() {
 				log.Printf("SessionNotifier: Warning: failed to get match details: %v", err)
 			}
 
+			// set empty steam players because we don't need data from Steam for game sessions
+			steamPlayers := []steam.SteamPlayer{}
 			matchWithDetails := parser.ParseMatchResultWithDetails(game, matchDetails, steamPlayers, sn.cfg.Players)
 			sessionWithDetails.Matches = append(sessionWithDetails.Matches, matchWithDetails)
 

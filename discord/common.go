@@ -35,10 +35,10 @@ func getResultPrefixEmoji(winner int) string {
 	return "🤝"
 }
 
-func formatPlayerLink(player parser.Player) string {
+func formatPlayerLink(player parser.Player, withFlag bool) string {
 	playerName := fmt.Sprintf("[%s](https://leetify.com/public/profile/%s)", player.Name, player.SteamID)
 
-	if player.CountryCode != "" {
+	if withFlag && player.CountryCode != "" {
 		flag := CountryCodeToFlag(player.CountryCode)
 		playerName = fmt.Sprintf("%s %s", flag, playerName)
 	}

@@ -9,6 +9,7 @@ import (
 type GameSession struct {
 	Matches          []leetify.LeetifyGameResponse
 	LastMatchEndTime time.Time
+	sessionDuration  time.Duration
 }
 
 func NewSession(game leetify.LeetifyGameResponse) *GameSession {
@@ -17,6 +18,7 @@ func NewSession(game leetify.LeetifyGameResponse) *GameSession {
 	return &GameSession{
 		Matches:          []leetify.LeetifyGameResponse{game},
 		LastMatchEndTime: matchEndTime,
+		sessionDuration:  45 * time.Minute,
 	}
 }
 
@@ -27,9 +29,13 @@ func (s *GameSession) AddMatch(game leetify.LeetifyGameResponse) {
 	s.LastMatchEndTime = matchEndTime
 }
 
-func (s *GameSession) IsMatchWithinSession(game leetify.LeetifyGameResponse) bool {
+func (s *GameSession) IsSessionFinished() bool {
+	return time.Since(s.LastMatchEndTime) > s.sessionDuration
+}
+
+func (s *GameSession) IsMatchPartOfSession(game leetify.LeetifyGameResponse) bool {
 	matchEndTime, _ := time.Parse(time.RFC3339, game.GameFinishedAt)
-	return matchEndTime.Sub(s.LastMatchEndTime) <= 30*time.Minute
+	return matchEndTime.Sub(s.LastMatchEndTime) <= s.sessionDuration
 }
 
 func (s *GameSession) GetSteamIDs() []string {

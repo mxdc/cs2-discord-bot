@@ -168,7 +168,7 @@ func parsePlayers(
 		// Update with steam data if available
 		for _, sp := range steamPlayers {
 			if sp.SteamID == player.SteamID {
-				updatedPlayer.Name = sp.PersonaName
+				// updatedPlayer.Name = sp.PersonaName
 				updatedPlayer.CountryCode = sp.CountryCode
 				break
 			}
@@ -183,6 +183,7 @@ func parsePlayers(
 					updatedPlayer.Mvps = p.Mvps
 					updatedPlayer.KdRatio = p.KdRatio
 					updatedPlayer.TotalDamage = p.TotalDamage
+					updatedPlayer.Name = p.Name
 					break
 				}
 			}

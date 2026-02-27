@@ -19,6 +19,21 @@ func (s *SessionWithDetails) BestKillDeathTeammate() Player {
 		}
 	}
 
+	// compute the total kills and deaths for the best killer across all matches
+	totalKills := 0
+	totalDeaths := 0
+	for _, match := range s.Matches {
+		for _, p := range match.OwnTeam.Players {
+			if p.SteamID == bestKiller.SteamID {
+				totalKills += p.Kills
+				totalDeaths += p.Deaths
+			}
+		}
+	}
+
+	bestKiller.Kills = totalKills
+	bestKiller.Deaths = totalDeaths
+
 	return bestKiller
 }
 
@@ -34,6 +49,21 @@ func (s *SessionWithDetails) WorstKillDeathTeammate() Player {
 			worstKiller = player
 		}
 	}
+
+	// compute the total kills and deaths for the worst killer across all matches
+	totalKills := 0
+	totalDeaths := 0
+	for _, match := range s.Matches {
+		for _, p := range match.OwnTeam.Players {
+			if p.SteamID == worstKiller.SteamID {
+				totalKills += p.Kills
+				totalDeaths += p.Deaths
+			}
+		}
+	}
+
+	worstKiller.Kills = totalKills
+	worstKiller.Deaths = totalDeaths
 
 	return worstKiller
 }
@@ -51,5 +81,20 @@ func (s *SessionWithDetails) KnownPlayers() []Player {
 		}
 	}
 
-	return knownPlayers
+	uniquePlayers := []Player{}
+
+	for _, player := range knownPlayers {
+		duplicate := false
+		for _, uniquePlayer := range uniquePlayers {
+			if player.SteamID == uniquePlayer.SteamID {
+				duplicate = true
+				break
+			}
+		}
+		if !duplicate {
+			uniquePlayers = append(uniquePlayers, player)
+		}
+	}
+
+	return uniquePlayers
 }

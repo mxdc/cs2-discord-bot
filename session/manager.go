@@ -11,7 +11,6 @@ type SessionManager struct {
 }
 
 const (
-	sessionTimeout = 45 * time.Minute
 	tickerInterval = 5 * time.Minute
 )
 
@@ -50,7 +49,7 @@ func (sm *SessionManager) HandleIncomingMatches() {
 				continue
 			}
 
-			if currentSession.IsMatchWithinSession(msg.Match) {
+			if currentSession.IsMatchPartOfSession(msg.Match) {
 				currentSession.AddMatch(msg.Match)
 				log.Printf("SessionManager: Added match %s to current session", msg.Match.GameId)
 				continue
@@ -67,7 +66,7 @@ func (sm *SessionManager) HandleIncomingMatches() {
 				continue
 			}
 
-			if time.Since(currentSession.LastMatchEndTime) > sessionTimeout {
+			if currentSession.IsSessionFinished() {
 				log.Printf("SessionManager: Inactivity timeout reached, flushing session")
 				sm.out <- *currentSession
 				currentSession = nil

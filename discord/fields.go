@@ -69,7 +69,7 @@ func (f *EmbedFieldFormatter) addPlayerMVPField(match parser.MatchWithDetails) {
 	}
 
 	matchMVP := findMVP(match)
-	playerLink := formatPlayerLink(matchMVP)
+	playerLink := formatPlayerLink(matchMVP, true)
 
 	field := EmbedField{
 		Name:   "",
@@ -130,18 +130,22 @@ func (f *EmbedFieldFormatter) addSessionTeammatesField(session parser.SessionWit
 	best := session.BestKillDeathTeammate()
 	worst := session.WorstKillDeathTeammate()
 
-	bestPlayerLink := formatPlayerLink(best)
-	worstPlayerLink := formatPlayerLink(worst)
+	bestPlayerLink := formatPlayerLink(best, false)
+	worstPlayerLink := formatPlayerLink(worst, false)
 
-	bestTeammateStr := fmt.Sprintf(":star: *Best Teammate*\u00A0\u00A0\u00A0\u00A0**%s**", bestPlayerLink)
-	worstTeammateStr := fmt.Sprintf(":poop: *Worst Teammate*\u00A0\u00A0\u00A0\u00A0**%s**", worstPlayerLink)
+	bestTeammateKey := ":star: *Best Player*"
+	bestTeammateValue := fmt.Sprintf("**%s** · **%d**K/**%d**D", bestPlayerLink, best.Kills, best.Deaths)
+	bestTeammateStr := fmt.Sprintf("%s\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0%s", bestTeammateKey, bestTeammateValue)
+
+	worstTeammateKey := ":poop: *Worst Player*"
+	worstTeammateValue := fmt.Sprintf("**%s** · **%d**K/**%d**D", worstPlayerLink, worst.Kills, worst.Deaths)
+	worstTeammateStr := fmt.Sprintf("%s\u00A0\u00A0\u00A0\u00A0%s", worstTeammateKey, worstTeammateValue)
 
 	field := EmbedField{
 		Name:   "",
 		Value:  fmt.Sprintf("%s\n%s", bestTeammateStr, worstTeammateStr),
 		Inline: false,
 	}
-
 	f.fields = append(f.fields, field)
 }
 
