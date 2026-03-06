@@ -104,17 +104,16 @@ func (f *EmbedFieldFormatter) addSessionMatchesField(matches []parser.MatchWithD
 
 	lines := make([]string, len(matches))
 	for i, match := range matches {
-		resultEmoji := getResultPrefixEmoji(match.Winner)
+		resultEmoji := getResultPrefixUnicode(match.Winner)
 		matchLink := fmt.Sprintf("https://leetify.com/public/match-details/%s/details-general", match.GameID)
 		matchResult := fmt.Sprintf(
-			"%s %s · %d-%d · %s",
-			resultEmoji,
+			"%s · %d-%d · %s",
 			match.GameMode,
 			match.OwnTeam.Score,
 			match.EnemyTeam.Score,
 			match.MapName,
 		)
-		matchResultWithLink := fmt.Sprintf("▸ [**%s**](%s)", matchResult, matchLink)
+		matchResultWithLink := fmt.Sprintf("%s [**%s**](%s)", resultEmoji, matchResult, matchLink)
 		lines[i] = matchResultWithLink
 	}
 
