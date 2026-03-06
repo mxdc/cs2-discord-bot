@@ -32,17 +32,18 @@ func (b *SessionResultBuilder) formatSessionHeader() string {
 	knownPlayers := b.session.KnownPlayers()
 
 	names := formatPlayerNamesAsTitle(knownPlayers)
-	return fmt.Sprintf("%s played %d matches.", names, len(b.session.Matches))
+	return fmt.Sprintf(":video_game: %s played %d matches.", names, len(b.session.Matches))
 }
 
 func (b *SessionResultBuilder) createSessionEmbed() Embed {
 	fieldsFormatter := NewEmbedFieldFormatter()
 	fieldsFormatter.addSessionMatchesField(b.session.Matches)
-	fieldsFormatter.addSessionTeammatesField(b.session)
+	// fieldsFormatter.addSessionTeammatesField(b.session)
+	fieldsFormatter.addSessionCumulatedScoresField(b.session)
 	fields := fieldsFormatter.GetFields()
 
 	return Embed{
-		Title:  ":video_game: Session summary",
+		Title:  "Session summary",
 		Fields: fields,
 		Color:  ColorBlue,
 	}

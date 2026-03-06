@@ -27,23 +27,12 @@ func formatPlayerNamesAsTitle(players []parser.Player) string {
 
 func getResultPrefixEmoji(winner int) string {
 	if winner == 1 {
-		return "🏆"
-	}
-	if winner == 2 {
-		return "💀"
-	}
-	return "🤝"
-}
-
-func getResultPrefixUnicode(winner int) string {
-	if winner == 1 {
 		return "`🏆`"
 	}
 	if winner == 2 {
 		return "`💀`"
 	}
 	return "`🤝`"
-
 }
 
 func formatPlayerLink(player parser.Player, withFlag bool) string {

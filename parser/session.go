@@ -1,6 +1,8 @@
 package parser
 
 import (
+	"sort"
+
 	"github.com/mxdc/cs2-discord-bot/config"
 )
 
@@ -97,4 +99,12 @@ func (s *SessionWithDetails) KnownPlayers() []Player {
 	}
 
 	return uniquePlayers
+}
+
+func (s *SessionWithDetails) KnownPlayersSortedByKills() []Player {
+	players := s.KnownPlayers()
+	sort.Slice(players, func(i, j int) bool {
+		return players[i].Kills > players[j].Kills
+	})
+	return players
 }
