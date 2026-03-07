@@ -39,7 +39,8 @@ func (b *SessionResultBuilder) createSessionEmbed() Embed {
 	fieldsFormatter := NewEmbedFieldFormatter()
 	fieldsFormatter.addSessionMatchesField(b.session.Matches)
 	// fieldsFormatter.addSessionTeammatesField(b.session)
-	fieldsFormatter.addSessionCumulatedScoresField(b.session)
+	// fieldsFormatter.addSessionCumulatedScoresField(b.session)
+	fieldsFormatter.addSessionRankUpdate(b.session)
 	fields := fieldsFormatter.GetFields()
 
 	return Embed{

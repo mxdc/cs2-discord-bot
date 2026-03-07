@@ -37,22 +37,34 @@ type LeetifyGameResponse struct {
 	Scores              []int    `json:"scores"`
 }
 
-type ProfileResponse struct {
-	Games []LeetifyGameResponse `json:"games"`
+type LeetifyTeammateResponse struct {
+	Rank struct {
+		Type       string `json:"type"`
+		DataSource string `json:"dataSource"`
+		SkillLevel int    `json:"skillLevel"`
+	} `json:"rank"`
+	Steam64Id      string `json:"steam64Id"`
+	SteamAvatarUrl string `json:"steamAvatarUrl"`
+	SteamNickname  string `json:"steamNickname"`
 }
 
-func (c *LeetifyClient) GetPlayerMatches(playerConfig config.Player) ([]LeetifyGameResponse, error) {
+type ProfileResponse struct {
+	Games     []LeetifyGameResponse     `json:"games"`
+	Teammates []LeetifyTeammateResponse `json:"teammates"`
+}
+
+func (c *LeetifyClient) GetPlayerMatches(playerConfig config.Player) (ProfileResponse, error) {
 	url := fmt.Sprintf("%s/api/profile/id/%s", c.BaseURL, playerConfig.SteamID)
 	if playerConfig.AccountName != "" {
 		url = fmt.Sprintf("%s/api/profile/vanity-url/%s", c.BaseURL, playerConfig.AccountName)
 	}
 	log.Printf("Leetify: Fetching matches from %s\n", url)
 
-	var emptyGames []LeetifyGameResponse
+	var emptyProfile ProfileResponse
 
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
-		return emptyGames, fmt.Errorf("Failed to create request: %w", err)
+		return emptyProfile, fmt.Errorf("Failed to create request: %w", err)
 	}
 
 	req.Header.Set("Origin", "https://leetify.com")
@@ -60,22 +72,22 @@ func (c *LeetifyClient) GetPlayerMatches(playerConfig config.Player) ([]LeetifyG
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return emptyGames, fmt.Errorf("Failed to make request: %w", err)
+		return emptyProfile, fmt.Errorf("Failed to make request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return emptyGames, fmt.Errorf("API request failed with status: %d", resp.StatusCode)
+		return emptyProfile, fmt.Errorf("API request failed with status: %d", resp.StatusCode)
 	}
 
 	var profileResp ProfileResponse
 	if err := json.NewDecoder(resp.Body).Decode(&profileResp); err != nil {
-		return emptyGames, fmt.Errorf("Failed to decode response: %w", err)
+		return emptyProfile, fmt.Errorf("Failed to decode response: %w", err)
 	}
 
 	// Parse games into MatchResult format using existing function
 	// matches := parseStatsFromLeetify(profileResp.Games)
-	return profileResp.Games, nil
+	return profileResp, nil
 }
 
 type MatchDetailsResponse struct {

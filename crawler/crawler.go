@@ -30,37 +30,37 @@ func NewCrawler(
 
 func (c *Crawler) StartCrawling() {
 	log.Printf("%s: Crawler started", c.player.AccountName)
-	lastMatches, err := c.client.GetPlayerMatches(c.player)
+	before, err := c.client.GetPlayerMatches(c.player)
 	if err != nil {
 		log.Fatalf("%s: Error: %v", c.player.AccountName, err)
 	}
-	log.Printf("%s: %d previous matches", c.player.AccountName, len(lastMatches))
+	log.Printf("%s: %d previous matches", c.player.AccountName, len(before.Games))
 	time.Sleep(2 * time.Minute)
-	// lastMatches := []leetify.LeetifyGameResponse{}
+	// before := leetify.ProfileResponse{}
 
 	for {
-		matches, err := c.client.GetPlayerMatches(c.player)
+		after, err := c.client.GetPlayerMatches(c.player)
 		if err != nil {
 			log.Printf("%s: Error: %v", c.player.AccountName, err)
 			time.Sleep(1 * time.Minute)
 			continue
 		}
 
-		if len(matches) == 0 {
+		if len(after.Games) == 0 {
 			log.Printf("%s: No matches found, retrying in 2 minutes", c.player.AccountName)
 			time.Sleep(2 * time.Minute)
 			continue
 		}
 
 		// Check for new matches
-		newMatches := findNewMatches(lastMatches, matches)
+		newMatches := findNewMatches(before.Games, after.Games)
 		for _, match := range newMatches {
 			log.Printf("%s: New match found: %s", c.player.AccountName, match.GameId)
 			c.out <- session.MatchDetected{Match: match, Player: c.player}
 		}
 
-		lastMatches = matches
-		log.Printf("%s: Checked %d matches, found %d new", c.player.AccountName, len(matches), len(newMatches))
+		before = after
+		log.Printf("%s: Checked %d matches, found %d new", c.player.AccountName, len(after.Games), len(newMatches))
 		time.Sleep(2 * time.Minute)
 	}
 }

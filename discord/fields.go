@@ -149,6 +149,10 @@ func (f *EmbedFieldFormatter) addSessionTeammatesField(session parser.SessionWit
 	f.fields = append(f.fields, field)
 }
 
+func (f *EmbedFieldFormatter) addSessionRankUpdate(session parser.SessionWithDetails) {
+
+}
+
 func (f *EmbedFieldFormatter) addSessionCumulatedScoresField(session parser.SessionWithDetails) {
 	posW, nameW, killsW, deathsW := computeColumnWidths(session.KnownPlayers())
 	players := session.KnownPlayersSortedByKills()
