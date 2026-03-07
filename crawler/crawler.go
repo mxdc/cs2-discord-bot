@@ -11,20 +11,23 @@ import (
 )
 
 type Crawler struct {
-	client *leetify.LeetifyClient
-	player config.Player
-	out    chan<- session.MatchDetected
+	client    *leetify.LeetifyClient
+	player    config.Player
+	out       chan<- session.MatchDetected
+	debugMode bool
 }
 
 func NewCrawler(
 	client *leetify.LeetifyClient,
 	player config.Player,
 	out chan<- session.MatchDetected,
+	debugMode bool,
 ) *Crawler {
 	return &Crawler{
-		client: client,
-		player: player,
-		out:    out,
+		client:    client,
+		player:    player,
+		out:       out,
+		debugMode: debugMode,
 	}
 }
 
@@ -34,9 +37,18 @@ func (c *Crawler) StartCrawling() {
 	if err != nil {
 		log.Fatalf("%s: Error: %v", c.player.AccountName, err)
 	}
+	// In debug mode, we want to process the last 10 matches on startup
+	// to test the notifier without having to play new matches
+	if c.debugMode {
+		log.Printf("%s: Debug mode enabled", c.player.AccountName)
+		if len(before.Games) > 10 {
+			before.Games = before.Games[10:]
+		}
+	}
 	log.Printf("%s: %d previous matches", c.player.AccountName, len(before.Games))
-	time.Sleep(2 * time.Minute)
-	// before := leetify.ProfileResponse{}
+	if !c.debugMode {
+		time.Sleep(2 * time.Minute)
+	}
 
 	for {
 		after, err := c.client.GetPlayerMatches(c.player)

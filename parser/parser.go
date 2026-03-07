@@ -1,13 +1,25 @@
 package parser
 
 import (
+	"fmt"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/mxdc/cs2-discord-bot/config"
 	"github.com/mxdc/cs2-discord-bot/leetify"
 	"github.com/mxdc/cs2-discord-bot/steam"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
+
+type PlayerRankStats struct {
+	Rank        int
+	OldRank     int
+	RankType    int
+	RankChanged bool
+	Wins        int
+}
 
 type Player struct {
 	SteamID     string
@@ -18,6 +30,26 @@ type Player struct {
 	Deaths      int
 	KdRatio     float64
 	TotalDamage int
+	RankStats   PlayerRankStats
+}
+
+func (p *Player) FormatPlayerLink(withFlag, asTitle bool) string {
+	var playerName string
+
+	if asTitle {
+		playerName = cases.Title(language.English).String(strings.ToLower(p.Name))
+	} else {
+		playerName = p.Name
+	}
+
+	playerNameWithLink := fmt.Sprintf("[%s](https://leetify.com/public/profile/%s)", playerName, p.SteamID)
+
+	if withFlag && p.CountryCode != "" {
+		flag := CountryCodeToFlag(p.CountryCode)
+		playerNameWithLink = fmt.Sprintf("%s %s", flag, playerNameWithLink)
+	}
+
+	return playerNameWithLink
 }
 
 type Team struct {
@@ -176,6 +208,7 @@ func parsePlayers(
 
 		// Update with match details data if available
 		if matchDetails != nil {
+			// Find the player stats and update
 			for _, p := range matchDetails.PlayerStats {
 				if p.Steam64ID == updatedPlayer.SteamID {
 					updatedPlayer.Kills = p.TotalKills
@@ -184,6 +217,20 @@ func parsePlayers(
 					updatedPlayer.KdRatio = p.KdRatio
 					updatedPlayer.TotalDamage = p.TotalDamage
 					updatedPlayer.Name = p.Name
+					break
+				}
+			}
+
+			// Find the player rank and update
+			for _, p := range matchDetails.MatchmakingGameStats {
+				if p.SteamID == updatedPlayer.SteamID {
+					updatedPlayer.RankStats = PlayerRankStats{
+						Rank:        p.Rank,
+						OldRank:     p.OldRank,
+						RankType:    p.RankType,
+						RankChanged: p.RankChanged,
+						Wins:        p.Wins,
+					}
 					break
 				}
 			}

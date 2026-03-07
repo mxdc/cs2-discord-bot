@@ -1,19 +1,14 @@
 package discord
 
 import (
-	"fmt"
-	"strings"
-
 	"github.com/mxdc/cs2-discord-bot/parser"
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
 )
 
 func formatPlayerNamesAsTitle(players []parser.Player) string {
 	header := ""
 
 	for i, player := range players {
-		playerName := cases.Title(language.English).String(strings.ToLower(player.Name))
+		playerName := player.FormatPlayerLink(true, true)
 		header += playerName
 		if i < len(players)-2 {
 			header += ", "
@@ -27,21 +22,10 @@ func formatPlayerNamesAsTitle(players []parser.Player) string {
 
 func getResultPrefixEmoji(winner int) string {
 	if winner == 1 {
-		return "`🏆`"
+		return "🏆"
 	}
 	if winner == 2 {
-		return "`💀`"
+		return "💀"
 	}
-	return "`🤝`"
-}
-
-func formatPlayerLink(player parser.Player, withFlag bool) string {
-	playerName := fmt.Sprintf("[%s](https://leetify.com/public/profile/%s)", player.Name, player.SteamID)
-
-	if withFlag && player.CountryCode != "" {
-		flag := CountryCodeToFlag(player.CountryCode)
-		playerName = fmt.Sprintf("%s %s", flag, playerName)
-	}
-
-	return playerName
+	return "🤝"
 }

@@ -91,14 +91,25 @@ func (c *LeetifyClient) GetPlayerMatches(playerConfig config.Player) (ProfileRes
 }
 
 type MatchDetailsResponse struct {
-	PlayerStats    []LeetifyPlayerStats `json:"playerStats"`
-	SteamShareCode string               `json:"steamShareCode"`
-	ID             string               `json:"id"`
-	DataSource     string               `json:"dataSource"`
-	FinishedAt     string               `json:"gameFinishedAt"`
-	IsCs2          bool                 `json:"isCs2"`
-	MapName        string               `json:"mapName"`
-	TeamScores     []int                `json:"teamScores"`
+	PlayerStats          []LeetifyPlayerStats `json:"playerStats"`
+	SteamShareCode       string               `json:"steamShareCode"`
+	ID                   string               `json:"id"`
+	DataSource           string               `json:"dataSource"`
+	FinishedAt           string               `json:"gameFinishedAt"`
+	IsCs2                bool                 `json:"isCs2"`
+	MapName              string               `json:"mapName"`
+	TeamScores           []int                `json:"teamScores"`
+	MatchmakingGameStats []struct {
+		ID             string    `json:"id"`
+		GameID         string    `json:"gameId"`
+		SteamID        string    `json:"steam64Id"`
+		GameFinishedAt time.Time `json:"gameFinishedAt"`
+		Rank           int       `json:"rank"`
+		OldRank        int       `json:"oldRank"`
+		RankType       int       `json:"rankType"`
+		RankChanged    bool      `json:"rankChanged"`
+		Wins           int       `json:"wins"`
+	} `json:"matchmakingGameStats"`
 }
 
 type LeetifyPlayerStats struct {

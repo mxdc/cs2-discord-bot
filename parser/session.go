@@ -108,3 +108,11 @@ func (s *SessionWithDetails) KnownPlayersSortedByKills() []Player {
 	})
 	return players
 }
+
+func (s *SessionWithDetails) KnownPlayersSortedByRank() []Player {
+	players := s.KnownPlayers()
+	sort.Slice(players, func(i, j int) bool {
+		return players[i].RankStats.Rank > players[j].RankStats.Rank
+	})
+	return players
+}

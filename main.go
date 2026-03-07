@@ -22,7 +22,7 @@ func getTrackedPlayers(players []config.Player) []config.Player {
 	return tracked
 }
 
-func startMatchNotifier(cfg *config.AppConfig, client *leetify.LeetifyClient) {
+func startMatchNotifier(cfg *config.AppConfig, client *leetify.LeetifyClient, debugMode bool) {
 	log.Println("CS2: Running in match mode")
 
 	matchChan := make(chan session.MatchDetected, 1024)
@@ -30,10 +30,10 @@ func startMatchNotifier(cfg *config.AppConfig, client *leetify.LeetifyClient) {
 	matchNotifier := session.NewMatchNotifier(cfg, client, matchChan)
 	go matchNotifier.HandleMatch()
 
-	startCrawlers(client, cfg, matchChan)
+	startCrawlers(client, cfg, matchChan, debugMode)
 }
 
-func startSessionNotifier(cfg *config.AppConfig, client *leetify.LeetifyClient) {
+func startSessionNotifier(cfg *config.AppConfig, client *leetify.LeetifyClient, debugMode bool) {
 	log.Println("CS2: Running in session mode")
 
 	matchChan := make(chan session.MatchDetected, 1024)
@@ -45,15 +45,15 @@ func startSessionNotifier(cfg *config.AppConfig, client *leetify.LeetifyClient) 
 	sessionNotifier := session.NewSessionNotifier(client, cfg, sessionChan)
 	go sessionNotifier.HandleSession()
 
-	startCrawlers(client, cfg, matchChan)
+	startCrawlers(client, cfg, matchChan, debugMode)
 }
 
-func startCrawlers(client *leetify.LeetifyClient, cfg *config.AppConfig, matchChan chan<- session.MatchDetected) {
+func startCrawlers(client *leetify.LeetifyClient, cfg *config.AppConfig, matchChan chan<- session.MatchDetected, debugMode bool) {
 	log.Println("CS2: Starting crawler")
 
 	trackedPlayers := getTrackedPlayers(cfg.Players)
 	for i, player := range trackedPlayers {
-		crawler := crawler.NewCrawler(client, player, matchChan)
+		crawler := crawler.NewCrawler(client, player, matchChan, debugMode)
 		go crawler.StartCrawling()
 		if i < len(trackedPlayers)-1 {
 			time.Sleep(20 * time.Second)
@@ -67,15 +67,16 @@ func startCrawlers(client *leetify.LeetifyClient, cfg *config.AppConfig, matchCh
 func main() {
 	configFile := flag.String("config.file", "config.yml", "Path to the configuration file")
 	sessionMode := flag.Bool("session", false, "Enable session mode (groups matches into sessions)")
+	debugMode := flag.Bool("debug", false, "Enable debug mode")
 	flag.Parse()
 
 	cfg := config.MustLoadConfig(*configFile)
 	client := leetify.NewLeetifyClient(cfg.LeetifyAPIURL)
 
 	if *sessionMode {
-		startSessionNotifier(cfg, client)
+		startSessionNotifier(cfg, client, *debugMode)
 	} else {
-		startMatchNotifier(cfg, client)
+		startMatchNotifier(cfg, client, *debugMode)
 	}
 
 	log.Printf("CS2: Discord webhook configured: %t", cfg.DiscordHook != "")

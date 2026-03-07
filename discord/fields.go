@@ -8,6 +8,12 @@ import (
 	"github.com/mxdc/cs2-discord-bot/parser"
 )
 
+var positionEmoji = map[int]string{
+	0: "🥇",
+	1: "🥈",
+	2: "🥉",
+}
+
 type EmbedFieldFormatter struct {
 	fields []EmbedField
 }
@@ -70,7 +76,7 @@ func (f *EmbedFieldFormatter) addPlayerMVPField(match parser.MatchWithDetails) {
 	}
 
 	matchMVP := findMVP(match)
-	playerLink := formatPlayerLink(matchMVP, true)
+	playerLink := matchMVP.FormatPlayerLink(true, false)
 
 	field := EmbedField{
 		Name:   "",
@@ -114,7 +120,7 @@ func (f *EmbedFieldFormatter) addSessionMatchesField(matches []parser.MatchWithD
 			match.EnemyTeam.Score,
 			match.MapName,
 		)
-		matchResultWithLink := fmt.Sprintf("%s [**%s**](%s)", resultEmoji, matchResult, matchLink)
+		matchResultWithLink := fmt.Sprintf("`%s` [**%s**](%s)", resultEmoji, matchResult, matchLink)
 		lines[i] = matchResultWithLink
 	}
 
@@ -126,36 +132,77 @@ func (f *EmbedFieldFormatter) addSessionMatchesField(matches []parser.MatchWithD
 	f.fields = append(f.fields, field)
 }
 
-func (f *EmbedFieldFormatter) addSessionTeammatesField(session parser.SessionWithDetails) {
+func (f *EmbedFieldFormatter) addSessionTeammatesField(session parser.SessionWithDetails, withWorst bool) {
 	best := session.BestKillDeathTeammate()
 	worst := session.WorstKillDeathTeammate()
 
-	bestPlayerLink := formatPlayerLink(best, false)
-	worstPlayerLink := formatPlayerLink(worst, false)
+	bestPlayerLink := best.FormatPlayerLink(false, false)
+	worstPlayerLink := worst.FormatPlayerLink(false, false)
 
-	bestTeammateKey := ":star: *Best Player*"
+	bestTeammateKey := ":star: *Best Teammate*"
 	bestTeammateValue := fmt.Sprintf("**%s** · **%d**K/**%d**D", bestPlayerLink, best.Kills, best.Deaths)
 	bestTeammateStr := fmt.Sprintf("%s\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0%s", bestTeammateKey, bestTeammateValue)
 
-	worstTeammateKey := ":poop: *Worst Player*"
+	worstTeammateKey := ":poop: *Worst Teammate*"
 	worstTeammateValue := fmt.Sprintf("**%s** · **%d**K/**%d**D", worstPlayerLink, worst.Kills, worst.Deaths)
 	worstTeammateStr := fmt.Sprintf("%s\u00A0\u00A0\u00A0\u00A0%s", worstTeammateKey, worstTeammateValue)
 
+	var toDisplay string
+	if withWorst {
+		toDisplay = fmt.Sprintf("%s\n%s", bestTeammateStr, worstTeammateStr)
+	} else {
+		toDisplay = bestTeammateStr
+	}
+
 	field := EmbedField{
 		Name:   "",
-		Value:  fmt.Sprintf("%s\n%s", bestTeammateStr, worstTeammateStr),
+		Value:  toDisplay,
 		Inline: false,
 	}
 	f.fields = append(f.fields, field)
 }
 
 func (f *EmbedFieldFormatter) addSessionRankUpdate(session parser.SessionWithDetails) {
+	players := session.KnownPlayersSortedByRank()
+	_, nameW, _, _, rankW := computeColumnWidths(players)
 
+	var lines []string
+	for _, p := range players {
+		// 11 for Premier Rank, 12 for Classic Matchmaking
+		if p.RankStats.RankType != 11 || p.RankStats.Rank == 0 {
+			continue
+		}
+
+		medal := "🔰"
+		currPos := len(lines) + 1
+		if currPos < 4 {
+			medal = positionEmoji[currPos-1]
+		}
+		playerLink := p.FormatPlayerLink(false, false)
+		lines = append(lines, fmt.Sprintf(
+			"%s `%*d` **%-*s**",
+			medal,
+			rankW, p.RankStats.Rank,
+			nameW, playerLink,
+		))
+	}
+
+	if len(lines) == 0 {
+		return
+	}
+
+	headerStr := "*New MMRs*"
+	field := EmbedField{
+		Name:   "",
+		Value:  fmt.Sprintf("%s\n%s", headerStr, strings.Join(lines, "\n")),
+		Inline: false,
+	}
+	f.fields = append(f.fields, field)
 }
 
 func (f *EmbedFieldFormatter) addSessionCumulatedScoresField(session parser.SessionWithDetails) {
-	posW, nameW, killsW, deathsW := computeColumnWidths(session.KnownPlayers())
 	players := session.KnownPlayersSortedByKills()
+	posW, nameW, killsW, deathsW, _ := computeColumnWidths(players)
 	lines := make([]string, len(players)+2)
 
 	lines[0] = fmt.Sprintf(
@@ -171,18 +218,14 @@ func (f *EmbedFieldFormatter) addSessionCumulatedScoresField(session parser.Sess
 	lines[1] = fmt.Sprintf("-%*s", total, strings.Repeat("-", total))
 
 	for i, p := range players {
-		pos := "🔰"
-		if i == 0 {
-			pos = "🥇"
-		} else if i == 1 {
-			pos = "🥈"
-		} else if i == 2 {
-			pos = "🥉"
+		medal := "🔰"
+		if i < 3 {
+			medal = positionEmoji[i]
 		}
 
 		lines[i+2] = fmt.Sprintf(
 			"%-*s  %-*s  %*d  %*d",
-			posW, pos,
+			posW, medal,
 			nameW, p.Name,
 			killsW, p.Kills,
 			deathsW, p.Deaths,
@@ -199,20 +242,22 @@ func (f *EmbedFieldFormatter) addSessionCumulatedScoresField(session parser.Sess
 	f.fields = append(f.fields, field)
 }
 
-func computeColumnWidths(players []parser.Player) (int, int, int, int) {
+func computeColumnWidths(players []parser.Player) (int, int, int, int, int) {
 	posW := 1
 	nameW := 1
 	killsW := 1
 	deathsW := 1
+	rankW := 1
 
 	for _, p := range players {
 		posW = max(posW, len(players)%2)
 		nameW = max(nameW, len(p.Name))
 		killsW = max(killsW, len(strconv.Itoa(p.Kills)))
 		deathsW = max(deathsW, len(strconv.Itoa(p.Deaths)))
+		rankW = max(rankW, len(strconv.Itoa(p.RankStats.Rank)))
 	}
 
-	return posW, nameW, killsW, deathsW
+	return posW, nameW, killsW, deathsW, rankW
 }
 
 func findMVP(match parser.MatchWithDetails) parser.Player {
