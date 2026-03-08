@@ -26,6 +26,19 @@ func (f *EmbedFieldFormatter) GetFields() []EmbedField {
 	return f.fields
 }
 
+func (f *EmbedFieldFormatter) addMatchOneLinerField(match parser.MatchWithDetails) {
+	matchLink := match.GetMatchLink()
+	matchResult := match.GetOneLinerResult()
+
+	field := EmbedField{
+		Name:   "",
+		Value:  fmt.Sprintf("[**%s**](%s)", matchResult, matchLink),
+		Inline: false,
+	}
+
+	f.fields = append(f.fields, field)
+}
+
 func (f *EmbedFieldFormatter) addGameModeField(gameMode string) {
 	if len(gameMode) == 0 {
 		return
@@ -76,6 +89,10 @@ func (f *EmbedFieldFormatter) addPlayerMVPField(match parser.MatchWithDetails) {
 	}
 
 	matchMVP := findMVP(match)
+	if len(matchMVP.Name) == 0 {
+		return
+	}
+
 	playerLink := matchMVP.FormatPlayerLink(true, false)
 
 	field := EmbedField{
@@ -87,12 +104,12 @@ func (f *EmbedFieldFormatter) addPlayerMVPField(match parser.MatchWithDetails) {
 	f.fields = append(f.fields, field)
 }
 
-func (f *EmbedFieldFormatter) addMatchLinkField(gameID string) {
-	if len(gameID) == 0 {
+func (f *EmbedFieldFormatter) addMatchLinkField(match parser.MatchWithDetails) {
+	if len(match.GameID) == 0 {
 		return
 	}
 
-	matchLink := fmt.Sprintf("https://leetify.com/public/match-details/%s/details-general", gameID)
+	matchLink := match.GetMatchLink()
 	matchLinkLabel := fmt.Sprintf("▸ [View match details on Leetify](%s)", matchLink)
 
 	field := EmbedField{
@@ -112,14 +129,8 @@ func (f *EmbedFieldFormatter) addSessionMatchesField(matches []parser.MatchWithD
 	lines := make([]string, len(matches))
 	for i, match := range matches {
 		resultEmoji := getResultPrefixEmoji(match.Winner)
-		matchLink := fmt.Sprintf("https://leetify.com/public/match-details/%s/details-general", match.GameID)
-		matchResult := fmt.Sprintf(
-			"%s · %d-%d · %s",
-			match.GameMode,
-			match.OwnTeam.Score,
-			match.EnemyTeam.Score,
-			match.MapName,
-		)
+		matchLink := match.GetMatchLink()
+		matchResult := match.GetOneLinerResult()
 		matchResultWithLink := fmt.Sprintf("`%s` [**%s**](%s)", resultEmoji, matchResult, matchLink)
 		lines[i] = matchResultWithLink
 	}
@@ -139,11 +150,11 @@ func (f *EmbedFieldFormatter) addSessionTeammatesField(session parser.SessionWit
 	bestPlayerLink := best.FormatPlayerLink(false, false)
 	worstPlayerLink := worst.FormatPlayerLink(false, false)
 
-	bestTeammateKey := ":star: *Best Teammate*"
+	bestTeammateKey := ":star: *Best Buddy*"
 	bestTeammateValue := fmt.Sprintf("**%s** · **%d**K/**%d**D", bestPlayerLink, best.Kills, best.Deaths)
 	bestTeammateStr := fmt.Sprintf("%s\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0%s", bestTeammateKey, bestTeammateValue)
 
-	worstTeammateKey := ":poop: *Worst Teammate*"
+	worstTeammateKey := ":poop: *Worst Buddy*"
 	worstTeammateValue := fmt.Sprintf("**%s** · **%d**K/**%d**D", worstPlayerLink, worst.Kills, worst.Deaths)
 	worstTeammateStr := fmt.Sprintf("%s\u00A0\u00A0\u00A0\u00A0%s", worstTeammateKey, worstTeammateValue)
 

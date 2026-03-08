@@ -44,13 +44,13 @@ func (sm *SessionManager) HandleIncomingMatches() {
 			log.Printf("SessionManager: New match detected: %s", msg.Match.GameId)
 
 			if currentSession == nil {
-				currentSession = NewSession(msg.Match)
+				currentSession = NewSession(msg.Match, msg.DetectedAt)
 				log.Printf("SessionManager: Started new session with match %s", msg.Match.GameId)
 				continue
 			}
 
 			if currentSession.IsMatchPartOfSession(msg.Match) {
-				currentSession.AddMatch(msg.Match)
+				currentSession.AddMatch(msg.Match, msg.DetectedAt)
 				log.Printf("SessionManager: Added match %s to current session", msg.Match.GameId)
 				continue
 			}
@@ -58,7 +58,7 @@ func (sm *SessionManager) HandleIncomingMatches() {
 			log.Printf("SessionManager: Match too far in time, flushing session")
 			sm.out <- *currentSession
 
-			currentSession = NewSession(msg.Match)
+			currentSession = NewSession(msg.Match, msg.DetectedAt)
 			log.Printf("SessionManager: Started new session with match %s", msg.Match.GameId)
 
 		case <-ticker.C:
@@ -66,7 +66,7 @@ func (sm *SessionManager) HandleIncomingMatches() {
 				continue
 			}
 
-			if currentSession.IsSessionFinished() {
+			if currentSession.IsSessionTimeout() {
 				log.Printf("SessionManager: Inactivity timeout reached, flushing session")
 				sm.out <- *currentSession
 				currentSession = nil

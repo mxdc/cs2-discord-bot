@@ -12,8 +12,9 @@ import (
 )
 
 type MatchDetected struct {
-	Match  leetify.LeetifyGameResponse
-	Player config.Player
+	Match      leetify.LeetifyGameResponse
+	Player     config.Player
+	DetectedAt time.Time
 }
 
 type MatchNotifier struct {

@@ -8,7 +8,7 @@ func formatPlayerNamesAsTitle(players []parser.Player) string {
 	header := ""
 
 	for i, player := range players {
-		playerName := player.FormatPlayerLink(true, true)
+		playerName := player.FormatPlayerTitle()
 		header += playerName
 		if i < len(players)-2 {
 			header += ", "

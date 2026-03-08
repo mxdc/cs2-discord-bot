@@ -32,20 +32,20 @@ func NewCrawler(
 }
 
 func (c *Crawler) StartCrawling() {
-	log.Printf("%s: Crawler started", c.player.AccountName)
+	log.Printf("%s: Crawler started", c.player.PlayerID())
 	before, err := c.client.GetPlayerMatches(c.player)
 	if err != nil {
-		log.Fatalf("%s: Error: %v", c.player.AccountName, err)
+		log.Fatalf("%s: Error: %v", c.player.PlayerID(), err)
 	}
-	// In debug mode, we want to process the last 10 matches on startup
+	// In debug mode, we want to process the last 5 matches on startup
 	// to test the notifier without having to play new matches
 	if c.debugMode {
-		log.Printf("%s: Debug mode enabled", c.player.AccountName)
-		if len(before.Games) > 10 {
-			before.Games = before.Games[10:]
+		log.Printf("%s: Debug mode enabled", c.player.PlayerID())
+		if len(before.Games) > 5 {
+			before.Games = before.Games[5:]
 		}
 	}
-	log.Printf("%s: %d previous matches", c.player.AccountName, len(before.Games))
+	log.Printf("%s: %d previous matches", c.player.PlayerID(), len(before.Games))
 	if !c.debugMode {
 		time.Sleep(2 * time.Minute)
 	}
@@ -53,13 +53,13 @@ func (c *Crawler) StartCrawling() {
 	for {
 		after, err := c.client.GetPlayerMatches(c.player)
 		if err != nil {
-			log.Printf("%s: Error: %v", c.player.AccountName, err)
+			log.Printf("%s: Error: %v", c.player.PlayerID(), err)
 			time.Sleep(1 * time.Minute)
 			continue
 		}
 
 		if len(after.Games) == 0 {
-			log.Printf("%s: No matches found, retrying in 2 minutes", c.player.AccountName)
+			log.Printf("%s: No matches found, retrying in 2 minutes", c.player.PlayerID())
 			time.Sleep(2 * time.Minute)
 			continue
 		}
@@ -67,12 +67,16 @@ func (c *Crawler) StartCrawling() {
 		// Check for new matches
 		newMatches := findNewMatches(before.Games, after.Games)
 		for _, match := range newMatches {
-			log.Printf("%s: New match found: %s", c.player.AccountName, match.GameId)
-			c.out <- session.MatchDetected{Match: match, Player: c.player}
+			log.Printf("%s: New match found: %s", c.player.PlayerID(), match.GameId)
+			c.out <- session.MatchDetected{Match: match, Player: c.player, DetectedAt: time.Now()}
 		}
 
 		before = after
-		log.Printf("%s: Checked %d matches, found %d new", c.player.AccountName, len(after.Games), len(newMatches))
+
+		if len(newMatches) > 0 {
+			log.Printf("%s: found %d new", c.player.PlayerID(), len(newMatches))
+		}
+
 		time.Sleep(2 * time.Minute)
 	}
 }

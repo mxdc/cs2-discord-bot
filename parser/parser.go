@@ -37,7 +37,7 @@ func (p *Player) FormatPlayerLink(withFlag, asTitle bool) string {
 	var playerName string
 
 	if asTitle {
-		playerName = cases.Title(language.English).String(strings.ToLower(p.Name))
+		playerName = p.FormatPlayerTitle()
 	} else {
 		playerName = p.Name
 	}
@@ -50,6 +50,10 @@ func (p *Player) FormatPlayerLink(withFlag, asTitle bool) string {
 	}
 
 	return playerNameWithLink
+}
+
+func (p *Player) FormatPlayerTitle() string {
+	return cases.Title(language.English).String(strings.ToLower(p.Name))
 }
 
 type Team struct {
@@ -65,6 +69,20 @@ type MatchWithDetails struct {
 	OwnTeam        Team
 	EnemyTeam      Team
 	Winner         int
+}
+
+func (m *MatchWithDetails) GetMatchLink() string {
+	return fmt.Sprintf("https://leetify.com/public/match-details/%s/details-general", m.GameID)
+}
+
+func (m *MatchWithDetails) GetOneLinerResult() string {
+	return fmt.Sprintf(
+		"%s · %d-%d · %s",
+		m.GameMode,
+		m.OwnTeam.Score,
+		m.EnemyTeam.Score,
+		m.MapName,
+	)
 }
 
 type MatchResult struct {

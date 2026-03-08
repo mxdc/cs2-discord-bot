@@ -56,7 +56,7 @@ type ProfileResponse struct {
 func (c *LeetifyClient) GetPlayerMatches(playerConfig config.Player) (ProfileResponse, error) {
 	url := fmt.Sprintf("%s/api/profile/id/%s", c.BaseURL, playerConfig.SteamID)
 	if playerConfig.AccountName != "" {
-		url = fmt.Sprintf("%s/api/profile/vanity-url/%s", c.BaseURL, playerConfig.AccountName)
+		url = fmt.Sprintf("%s/api/profile/vanity-url/%s", c.BaseURL, playerConfig.PlayerID())
 	}
 	log.Printf("Leetify: Fetching matches from %s\n", url)
 
@@ -85,8 +85,6 @@ func (c *LeetifyClient) GetPlayerMatches(playerConfig config.Player) (ProfileRes
 		return emptyProfile, fmt.Errorf("Failed to decode response: %w", err)
 	}
 
-	// Parse games into MatchResult format using existing function
-	// matches := parseStatsFromLeetify(profileResp.Games)
 	return profileResp, nil
 }
 
