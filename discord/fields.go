@@ -29,10 +29,11 @@ func (f *EmbedFieldFormatter) GetFields() []EmbedField {
 func (f *EmbedFieldFormatter) addMatchOneLinerField(match parser.MatchWithDetails) {
 	matchLink := match.GetMatchLink()
 	matchResult := match.GetOneLinerResult()
+	resultEmoji := getResultPrefixEmoji(match.Winner)
 
 	field := EmbedField{
 		Name:   "",
-		Value:  fmt.Sprintf("[**%s**](%s)", matchResult, matchLink),
+		Value:  fmt.Sprintf("%s [**%s**](%s)", resultEmoji, matchResult, matchLink),
 		Inline: false,
 	}
 
@@ -89,7 +90,7 @@ func (f *EmbedFieldFormatter) addPlayerMVPField(match parser.MatchWithDetails) {
 	}
 
 	matchMVP := findMVP(match)
-	if len(matchMVP.Name) == 0 {
+	if matchMVP.IsNameInvisible() {
 		return
 	}
 

@@ -6,8 +6,9 @@ import (
 )
 
 type SessionManager struct {
-	in  <-chan MatchDetected
-	out chan<- GameSession
+	in        <-chan MatchDetected
+	out       chan<- GameSession
+	debugMode bool
 }
 
 const (
@@ -17,10 +18,12 @@ const (
 func NewSessionManager(
 	in <-chan MatchDetected,
 	out chan<- GameSession,
+	debugMode bool,
 ) *SessionManager {
 	return &SessionManager{
-		in:  in,
-		out: out,
+		in:        in,
+		out:       out,
+		debugMode: debugMode,
 	}
 }
 
@@ -44,7 +47,7 @@ func (sm *SessionManager) HandleIncomingMatches() {
 			log.Printf("SessionManager: New match detected: %s", msg.Match.GameId)
 
 			if currentSession == nil {
-				currentSession = NewSession(msg.Match, msg.DetectedAt)
+				currentSession = NewSession(msg.Match, msg.DetectedAt, sm.debugMode)
 				log.Printf("SessionManager: Started new session with match %s", msg.Match.GameId)
 				continue
 			}
@@ -58,7 +61,7 @@ func (sm *SessionManager) HandleIncomingMatches() {
 			log.Printf("SessionManager: Match too far in time, flushing session")
 			sm.out <- *currentSession
 
-			currentSession = NewSession(msg.Match, msg.DetectedAt)
+			currentSession = NewSession(msg.Match, msg.DetectedAt, sm.debugMode)
 			log.Printf("SessionManager: Started new session with match %s", msg.Match.GameId)
 
 		case <-ticker.C:

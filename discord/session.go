@@ -32,7 +32,7 @@ func (b *SessionResultBuilder) formatSessionHeader() string {
 	knownPlayers := b.session.KnownPlayers()
 
 	names := formatPlayerNamesAsTitle(knownPlayers)
-	return fmt.Sprintf(":video_game: %s played %d matches.", names, len(b.session.Matches))
+	return fmt.Sprintf("%s played %d matches.", names, len(b.session.Matches))
 }
 
 func (b *SessionResultBuilder) createSessionEmbed() Embed {

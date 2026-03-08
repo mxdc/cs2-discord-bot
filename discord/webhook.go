@@ -98,11 +98,8 @@ func formatMatchHeader(match parser.MatchWithDetails) string {
 
 	players := match.OwnTeam.Players
 
-	resultEmoji := getResultPrefixEmoji(match.Winner)
-
 	// Build the player names string
-	names := formatPlayerNamesAsTitle(players)
-	header := fmt.Sprintf("%s %s", resultEmoji, names)
+	header := formatPlayerNamesAsTitle(players)
 
 	if match.Winner == 1 {
 		return fmt.Sprintf("%s won the match!", header)

@@ -12,9 +12,10 @@ type GameSession struct {
 	LastMatchDetectionTime time.Time
 	sessionDuration        time.Duration
 	sessionTimeout         time.Duration
+	debugMode              bool
 }
 
-func NewSession(game leetify.LeetifyGameResponse, detectedAt time.Time) *GameSession {
+func NewSession(game leetify.LeetifyGameResponse, detectedAt time.Time, debugMode bool) *GameSession {
 	matchEndTime, _ := time.Parse(time.RFC3339, game.GameFinishedAt)
 
 	return &GameSession{
@@ -23,6 +24,7 @@ func NewSession(game leetify.LeetifyGameResponse, detectedAt time.Time) *GameSes
 		LastMatchDetectionTime: detectedAt,
 		sessionDuration:        2 * time.Hour,
 		sessionTimeout:         2 * time.Hour,
+		debugMode:              debugMode,
 	}
 }
 
@@ -35,11 +37,19 @@ func (s *GameSession) AddMatch(game leetify.LeetifyGameResponse, detectedAt time
 }
 
 func (s *GameSession) IsSessionTimeout() bool {
+	if s.debugMode {
+		return time.Since(s.LastMatchEndTime) > s.sessionTimeout
+	}
+
 	return time.Since(s.LastMatchDetectionTime) > s.sessionTimeout
 }
 
 func (s *GameSession) IsMatchPartOfSession(game leetify.LeetifyGameResponse) bool {
 	matchEndTime, _ := time.Parse(time.RFC3339, game.GameFinishedAt)
+	if matchEndTime.Before(s.LastMatchEndTime) {
+		return false
+	}
+
 	return matchEndTime.Sub(s.LastMatchEndTime) <= s.sessionDuration
 }
 

@@ -39,7 +39,7 @@ func startSessionNotifier(cfg *config.AppConfig, client *leetify.LeetifyClient, 
 	matchChan := make(chan session.MatchDetected, 1024)
 	sessionChan := make(chan session.GameSession, 256)
 
-	sessionMgr := session.NewSessionManager(matchChan, sessionChan)
+	sessionMgr := session.NewSessionManager(matchChan, sessionChan, debugMode)
 	go sessionMgr.HandleIncomingMatches()
 
 	sessionNotifier := session.NewSessionNotifier(client, cfg, sessionChan)
