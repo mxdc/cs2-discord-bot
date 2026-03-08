@@ -132,7 +132,7 @@ func (f *EmbedFieldFormatter) addSessionMatchesField(matches []parser.MatchWithD
 		resultEmoji := getResultPrefixEmoji(match.Winner)
 		matchLink := match.GetMatchLink()
 		matchResult := match.GetOneLinerResult()
-		matchResultWithLink := fmt.Sprintf("`%s` [**%s**](%s)", resultEmoji, matchResult, matchLink)
+		matchResultWithLink := fmt.Sprintf("%s [**%s**](%s)", resultEmoji, matchResult, matchLink)
 		lines[i] = matchResultWithLink
 	}
 
