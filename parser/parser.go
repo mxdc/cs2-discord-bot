@@ -73,8 +73,9 @@ func (p *Player) IsNameInvisible() bool {
 }
 
 type Team struct {
-	Score   int
-	Players []Player
+	Score        int
+	Players      []Player
+	KnownPlayers []Player
 }
 
 type MatchWithDetails struct {
@@ -206,17 +207,37 @@ func ParseMatchResultWithDetails(
 		GameFinishedAt: match.GameFinishedAt,
 		MapName:        match.MapName,
 		OwnTeam: Team{
-			Score:   match.OwnTeam.Score,
-			Players: parsePlayers(match.OwnTeam.Players, matchDetails, steamPlayers, players),
+			Score:        match.OwnTeam.Score,
+			Players:      parsePlayers(match.OwnTeam.Players, matchDetails, steamPlayers, players),
+			KnownPlayers: []Player{},
 		},
 		EnemyTeam: Team{
-			Score:   match.EnemyTeam.Score,
-			Players: parsePlayers(match.EnemyTeam.Players, matchDetails, steamPlayers, []config.Player{}),
+			Score:        match.EnemyTeam.Score,
+			Players:      parsePlayers(match.EnemyTeam.Players, matchDetails, steamPlayers, []config.Player{}),
+			KnownPlayers: []Player{},
 		},
 		Winner: match.Winner,
 	}
 
+	ownTeamKnownPlayers := parseKnownPlayers(matchWithDetails.OwnTeam.Players, players)
+	matchWithDetails.OwnTeam.KnownPlayers = ownTeamKnownPlayers
+
 	return matchWithDetails
+}
+
+func parseKnownPlayers(players []Player, configPlayers []config.Player) []Player {
+	var knownPlayers []Player
+
+	for _, player := range players {
+		for _, configPlayer := range configPlayers {
+			if player.SteamID == configPlayer.SteamID {
+				knownPlayers = append(knownPlayers, player)
+				break
+			}
+		}
+	}
+
+	return knownPlayers
 }
 
 func parsePlayers(

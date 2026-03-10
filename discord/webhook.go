@@ -96,10 +96,8 @@ func formatMatchHeader(match parser.MatchWithDetails) string {
 		return "A match has finished."
 	}
 
-	players := match.OwnTeam.Players
-
-	// Build the player names string
-	header := formatPlayerNamesAsTitle(players)
+	knownPlayers := match.OwnTeam.KnownPlayers
+	header := formatPlayerNamesAsTitle(knownPlayers)
 
 	if match.Winner == 1 {
 		return fmt.Sprintf("%s won the match!", header)
