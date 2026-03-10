@@ -1,13 +1,26 @@
 package parser
 
 import (
+	"fmt"
 	"slices"
+	"strings"
 	"time"
+	"unicode"
 
 	"github.com/mxdc/cs2-discord-bot/config"
 	"github.com/mxdc/cs2-discord-bot/leetify"
 	"github.com/mxdc/cs2-discord-bot/steam"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
+
+type PlayerRankStats struct {
+	Rank        int
+	OldRank     int
+	RankType    int
+	RankChanged bool
+	Wins        int
+}
 
 type Player struct {
 	SteamID     string
@@ -18,11 +31,51 @@ type Player struct {
 	Deaths      int
 	KdRatio     float64
 	TotalDamage int
+	RankStats   PlayerRankStats
+}
+
+func (p *Player) FormatPlayerLink(withFlag, asTitle bool) string {
+	var playerName string
+
+	if asTitle {
+		playerName = p.FormatPlayerTitle()
+	} else {
+		playerName = p.Name
+	}
+
+	playerNameWithLink := fmt.Sprintf("[%s](https://leetify.com/public/profile/%s)", playerName, p.SteamID)
+
+	if withFlag && p.CountryCode != "" {
+		flag := CountryCodeToFlag(p.CountryCode)
+		playerNameWithLink = fmt.Sprintf("%s %s", flag, playerNameWithLink)
+	}
+
+	return playerNameWithLink
+}
+
+func (p *Player) FormatPlayerTitle() string {
+	return cases.Title(language.English).String(strings.ToLower(p.Name))
+}
+
+func (p *Player) IsNameInvisible() bool {
+	if p.Name == "" {
+		return true
+	}
+
+	for _, r := range p.Name {
+		if !(unicode.IsSpace(r) ||
+			unicode.IsControl(r) ||
+			unicode.Is(unicode.Cf, r)) {
+			return false
+		}
+	}
+	return true
 }
 
 type Team struct {
-	Score   int
-	Players []Player
+	Score        int
+	Players      []Player
+	KnownPlayers []Player
 }
 
 type MatchWithDetails struct {
@@ -33,6 +86,20 @@ type MatchWithDetails struct {
 	OwnTeam        Team
 	EnemyTeam      Team
 	Winner         int
+}
+
+func (m *MatchWithDetails) GetMatchLink() string {
+	return fmt.Sprintf("https://leetify.com/public/match-details/%s/details-general", m.GameID)
+}
+
+func (m *MatchWithDetails) GetOneLinerResult() string {
+	return fmt.Sprintf(
+		"%s · %d-%d · %s",
+		m.GameMode,
+		m.OwnTeam.Score,
+		m.EnemyTeam.Score,
+		m.MapName,
+	)
 }
 
 type MatchResult struct {
@@ -140,17 +207,37 @@ func ParseMatchResultWithDetails(
 		GameFinishedAt: match.GameFinishedAt,
 		MapName:        match.MapName,
 		OwnTeam: Team{
-			Score:   match.OwnTeam.Score,
-			Players: parsePlayers(match.OwnTeam.Players, matchDetails, steamPlayers, players),
+			Score:        match.OwnTeam.Score,
+			Players:      parsePlayers(match.OwnTeam.Players, matchDetails, steamPlayers, players),
+			KnownPlayers: []Player{},
 		},
 		EnemyTeam: Team{
-			Score:   match.EnemyTeam.Score,
-			Players: parsePlayers(match.EnemyTeam.Players, matchDetails, steamPlayers, []config.Player{}),
+			Score:        match.EnemyTeam.Score,
+			Players:      parsePlayers(match.EnemyTeam.Players, matchDetails, steamPlayers, []config.Player{}),
+			KnownPlayers: []Player{},
 		},
 		Winner: match.Winner,
 	}
 
+	ownTeamKnownPlayers := parseKnownPlayers(matchWithDetails.OwnTeam.Players, players)
+	matchWithDetails.OwnTeam.KnownPlayers = ownTeamKnownPlayers
+
 	return matchWithDetails
+}
+
+func parseKnownPlayers(players []Player, configPlayers []config.Player) []Player {
+	var knownPlayers []Player
+
+	for _, player := range players {
+		for _, configPlayer := range configPlayers {
+			if player.SteamID == configPlayer.SteamID {
+				knownPlayers = append(knownPlayers, player)
+				break
+			}
+		}
+	}
+
+	return knownPlayers
 }
 
 func parsePlayers(
@@ -168,7 +255,7 @@ func parsePlayers(
 		// Update with steam data if available
 		for _, sp := range steamPlayers {
 			if sp.SteamID == player.SteamID {
-				updatedPlayer.Name = sp.PersonaName
+				// updatedPlayer.Name = sp.PersonaName
 				updatedPlayer.CountryCode = sp.CountryCode
 				break
 			}
@@ -176,6 +263,7 @@ func parsePlayers(
 
 		// Update with match details data if available
 		if matchDetails != nil {
+			// Find the player stats and update
 			for _, p := range matchDetails.PlayerStats {
 				if p.Steam64ID == updatedPlayer.SteamID {
 					updatedPlayer.Kills = p.TotalKills
@@ -183,6 +271,21 @@ func parsePlayers(
 					updatedPlayer.Mvps = p.Mvps
 					updatedPlayer.KdRatio = p.KdRatio
 					updatedPlayer.TotalDamage = p.TotalDamage
+					updatedPlayer.Name = p.Name
+					break
+				}
+			}
+
+			// Find the player rank and update
+			for _, p := range matchDetails.MatchmakingGameStats {
+				if p.SteamID == updatedPlayer.SteamID {
+					updatedPlayer.RankStats = PlayerRankStats{
+						Rank:        p.Rank,
+						OldRank:     p.OldRank,
+						RankType:    p.RankType,
+						RankChanged: p.RankChanged,
+						Wins:        p.Wins,
+					}
 					break
 				}
 			}

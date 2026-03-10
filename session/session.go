@@ -7,27 +7,57 @@ import (
 )
 
 type GameSession struct {
-	Matches          []leetify.LeetifyGameResponse
-	LastMatchEndTime time.Time
+	Matches                []leetify.LeetifyGameResponse
+	LastMatchEndTime       time.Time
+	LastMatchDetectionTime time.Time
+	sessionDuration        time.Duration
+	sessionTimeout         time.Duration
+	debugMode              bool
 }
 
-func NewSession(game leetify.LeetifyGameResponse) *GameSession {
+func NewSession(game leetify.LeetifyGameResponse, detectedAt time.Time, debugMode bool) *GameSession {
 	matchEndTime, _ := time.Parse(time.RFC3339, game.GameFinishedAt)
 
 	return &GameSession{
-		Matches:          []leetify.LeetifyGameResponse{game},
-		LastMatchEndTime: matchEndTime,
+		Matches:                []leetify.LeetifyGameResponse{game},
+		LastMatchEndTime:       matchEndTime,
+		LastMatchDetectionTime: detectedAt,
+		sessionDuration:        2 * time.Hour,
+		sessionTimeout:         2 * time.Hour,
+		debugMode:              debugMode,
 	}
 }
 
-func (s *GameSession) AddMatch(game leetify.LeetifyGameResponse) {
+func (s *GameSession) AddMatch(game leetify.LeetifyGameResponse, detectedAt time.Time) {
 	matchEndTime, _ := time.Parse(time.RFC3339, game.GameFinishedAt)
 
 	s.Matches = append(s.Matches, game)
 	s.LastMatchEndTime = matchEndTime
+	s.LastMatchDetectionTime = detectedAt
 }
 
-func (s *GameSession) IsMatchWithinSession(game leetify.LeetifyGameResponse) bool {
+func (s *GameSession) IsSessionTimeout() bool {
+	if s.debugMode {
+		return time.Since(s.LastMatchEndTime) > s.sessionTimeout
+	}
+
+	return time.Since(s.LastMatchDetectionTime) > s.sessionTimeout
+}
+
+func (s *GameSession) IsMatchPartOfSession(game leetify.LeetifyGameResponse) bool {
 	matchEndTime, _ := time.Parse(time.RFC3339, game.GameFinishedAt)
-	return matchEndTime.Sub(s.LastMatchEndTime) <= 30*time.Minute
+	if matchEndTime.Before(s.LastMatchEndTime) {
+		return false
+	}
+
+	return matchEndTime.Sub(s.LastMatchEndTime) <= s.sessionDuration
+}
+
+func (s *GameSession) GetSteamIDs() []string {
+	allSteamIDs := []string{}
+	for _, game := range s.Matches {
+		allSteamIDs = append(allSteamIDs, game.OwnTeamSteam64Ids...)
+		allSteamIDs = append(allSteamIDs, game.EnemyTeamSteam64Ids...)
+	}
+	return allSteamIDs
 }

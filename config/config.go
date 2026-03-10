@@ -13,6 +13,14 @@ type Player struct {
 	Track       bool   `yaml:"track"`
 }
 
+func (p *Player) PlayerID() string {
+	if len(p.AccountName) > 0 {
+		return p.AccountName
+	}
+
+	return p.SteamID
+}
+
 type AppConfig struct {
 	SteamAPIKey   string   `yaml:"steam_api_key"`
 	SteamAPIURL   string   `yaml:"steam_api_url"`
