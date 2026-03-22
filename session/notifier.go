@@ -17,6 +17,11 @@ type MatchDetected struct {
 	DetectedAt time.Time
 }
 
+func (md *MatchDetected) IsTooOld() bool {
+	matchEndTime, _ := time.Parse(time.RFC3339, md.Match.GameFinishedAt)
+	return time.Since(matchEndTime) > 48*time.Hour
+}
+
 type MatchNotifier struct {
 	cfg    *config.AppConfig
 	client *leetify.LeetifyClient

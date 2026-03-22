@@ -39,6 +39,12 @@ func (sm *SessionManager) HandleIncomingMatches() {
 		select {
 
 		case msg := <-sm.in:
+			// drop match older than 2 days ago to avoid processing old matches on startup
+			if msg.IsTooOld() {
+				log.Printf("SessionManager: Match %s is too old, ignoring", msg.Match.GameId)
+				continue
+			}
+
 			if seen[msg.Match.GameId] {
 				continue
 			}
@@ -55,6 +61,11 @@ func (sm *SessionManager) HandleIncomingMatches() {
 			if currentSession.IsMatchPartOfSession(msg.Match) {
 				currentSession.AddMatch(msg.Match, msg.DetectedAt)
 				log.Printf("SessionManager: Added match %s to current session", msg.Match.GameId)
+				continue
+			}
+
+			if currentSession.IsMatchBeforeCurrentSession(msg.Match) {
+				log.Printf("SessionManager: Match %s is before current session, ignoring", msg.Match.GameId)
 				continue
 			}
 

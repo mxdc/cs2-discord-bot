@@ -61,3 +61,8 @@ func (s *GameSession) GetSteamIDs() []string {
 	}
 	return allSteamIDs
 }
+
+func (s *GameSession) IsMatchBeforeCurrentSession(game leetify.LeetifyGameResponse) bool {
+	matchEndTime, _ := time.Parse(time.RFC3339, game.GameFinishedAt)
+	return matchEndTime.Before(s.LastMatchEndTime)
+}
