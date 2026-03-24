@@ -252,10 +252,10 @@ func parsePlayers(
 	for _, player := range sortedPlayers {
 		updatedPlayer := Player{SteamID: player.SteamID}
 
-		// Update with steam data if available
+		// Update with Steam data if available
 		for _, sp := range steamPlayers {
 			if sp.SteamID == player.SteamID {
-				// updatedPlayer.Name = sp.PersonaName
+				updatedPlayer.Name = sp.PersonaName
 				updatedPlayer.CountryCode = sp.CountryCode
 				break
 			}

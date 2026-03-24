@@ -100,7 +100,7 @@ func formatMatchHeader(match parser.MatchWithDetails) string {
 	header := formatPlayerNamesAsTitle(knownPlayers)
 
 	if match.Winner == 1 {
-		return fmt.Sprintf("%s won the match!", header)
+		return fmt.Sprintf("%s won the match.", header)
 	}
 	if match.Winner == 2 {
 		return fmt.Sprintf("%s lost the match.", header)

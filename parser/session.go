@@ -116,3 +116,23 @@ func (s *SessionWithDetails) KnownPlayersSortedByRank() []Player {
 	})
 	return players
 }
+
+func (s *SessionWithDetails) AllMatchDefeats() bool {
+	for _, match := range s.Matches {
+		if match.Winner == 1 {
+			return false
+		}
+	}
+
+	return true
+}
+
+func (s *SessionWithDetails) AllMatchVictories() bool {
+	for _, match := range s.Matches {
+		if match.Winner == 2 {
+			return false
+		}
+	}
+
+	return true
+}
