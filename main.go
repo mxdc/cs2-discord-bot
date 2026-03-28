@@ -56,7 +56,7 @@ func startCrawlers(client *leetify.LeetifyClient, cfg *config.AppConfig, matchCh
 		crawler := crawler.NewCrawler(client, player, matchChan, debugMode)
 		go crawler.StartCrawling()
 		if i < len(trackedPlayers)-1 {
-			time.Sleep(20 * time.Second)
+			time.Sleep(5 * time.Minute)
 		}
 	}
 

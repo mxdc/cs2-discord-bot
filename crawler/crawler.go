@@ -47,20 +47,20 @@ func (c *Crawler) StartCrawling() {
 	}
 	log.Printf("%s: %d previous matches", c.player.PlayerID(), len(before.Games))
 	if !c.debugMode {
-		time.Sleep(2 * time.Minute)
+		time.Sleep(10 * time.Minute)
 	}
 
 	for {
 		after, err := c.client.GetPlayerMatches(c.player)
 		if err != nil {
 			log.Printf("%s: Error: %v", c.player.PlayerID(), err)
-			time.Sleep(1 * time.Minute)
+			time.Sleep(15 * time.Minute)
 			continue
 		}
 
 		if len(after.Games) == 0 {
-			log.Printf("%s: No matches found, retrying in 2 minutes", c.player.PlayerID())
-			time.Sleep(2 * time.Minute)
+			log.Printf("%s: No matches found, retrying in 1 hour", c.player.PlayerID())
+			time.Sleep(1 * time.Hour)
 			continue
 		}
 
@@ -77,7 +77,7 @@ func (c *Crawler) StartCrawling() {
 			log.Printf("%s: found %d new", c.player.PlayerID(), len(newMatches))
 		}
 
-		time.Sleep(2 * time.Minute)
+		time.Sleep(1 * time.Hour)
 	}
 }
 

@@ -22,8 +22,8 @@ func NewSession(game leetify.LeetifyGameResponse, detectedAt time.Time, debugMod
 		Matches:                []leetify.LeetifyGameResponse{game},
 		LastMatchEndTime:       matchEndTime,
 		LastMatchDetectionTime: detectedAt,
-		sessionDuration:        2 * time.Hour,
-		sessionTimeout:         2 * time.Hour,
+		sessionDuration:        3*time.Hour + 15*time.Minute,
+		sessionTimeout:         3*time.Hour + 30*time.Minute,
 		debugMode:              debugMode,
 	}
 }

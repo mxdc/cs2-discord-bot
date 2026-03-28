@@ -17,7 +17,7 @@ import (
 type PlayerRankStats struct {
 	Rank        int
 	OldRank     int
-	RankType    int
+	RankType    int // 11 for Premier Rank, 12 for Classic Matchmaking
 	RankChanged bool
 	Wins        int
 }

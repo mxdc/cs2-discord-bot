@@ -29,7 +29,7 @@ func (b *SessionResultBuilder) BuildMessage() WebhookMessage {
 }
 
 func (b *SessionResultBuilder) formatSessionHeader() string {
-	knownPlayers := b.session.KnownPlayers()
+	knownPlayers := b.session.KnownPlayersWithCumulatedStats()
 
 	names := formatPlayerNamesAsTitle(knownPlayers)
 	if b.session.AllMatchDefeats() {
