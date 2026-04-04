@@ -11,6 +11,40 @@ type SessionWithDetails struct {
 	TrackedPlayers []config.Player
 }
 
+func (s *SessionWithDetails) BestRatioTeammate() Player {
+	var bestRatioPlayer Player
+	var bestRatio float64
+
+	players := s.KnownPlayersWithCumulatedStats()
+	for _, player := range players {
+		ratio := player.KdRatio
+		if ratio > bestRatio {
+			bestRatio = ratio
+			bestRatioPlayer = player
+		}
+	}
+
+	return bestRatioPlayer
+
+}
+
+func (s *SessionWithDetails) WorstRatioTeammate() Player {
+	var worstRatioPlayer Player
+	var worstRatio float64 = 1e9
+
+	players := s.KnownPlayersWithCumulatedStats()
+	for _, player := range players {
+		ratio := player.KdRatio
+		if ratio < worstRatio {
+			worstRatio = ratio
+			worstRatioPlayer = player
+		}
+	}
+
+	return worstRatioPlayer
+
+}
+
 func (s *SessionWithDetails) BestKillDeathTeammate() Player {
 	var bestKiller Player
 
@@ -105,6 +139,11 @@ func (s *SessionWithDetails) KnownPlayersWithCumulatedStats() []Player {
 		uniquePlayers = append(uniquePlayers, finalPlayer)
 	}
 
+	// Sort players by K/D ratio in descending order
+	sort.Slice(uniquePlayers, func(i, j int) bool {
+		return uniquePlayers[i].KdRatio > uniquePlayers[j].KdRatio
+	})
+
 	return uniquePlayers
 }
 
@@ -124,22 +163,56 @@ func (s *SessionWithDetails) KnownPlayersSortedByRank() []Player {
 	return players
 }
 
-func (s *SessionWithDetails) AllMatchDefeats() bool {
+// MatchResults holds the counted results of all matches in a session
+type MatchResults struct {
+	Victories int
+	Defeats   int
+	Ties      int
+	Total     int
+}
+
+// countMatchResults efficiently counts all match results in a single pass
+func (s *SessionWithDetails) countMatchResults() MatchResults {
+	results := MatchResults{}
+
 	for _, match := range s.Matches {
-		if match.Winner == 1 {
-			return false
+		results.Total++
+
+		switch match.Winner {
+		case 1:
+			results.Victories++
+		case 2:
+			results.Defeats++
+		default:
+			results.Ties++
 		}
 	}
 
-	return true
+	return results
+}
+
+func (s *SessionWithDetails) AllMatchDefeats() bool {
+	results := s.countMatchResults()
+	return results.Total > 0 && results.Victories == 0 && results.Ties == 0
 }
 
 func (s *SessionWithDetails) AllMatchVictories() bool {
-	for _, match := range s.Matches {
-		if match.Winner == 2 {
-			return false
-		}
-	}
+	results := s.countMatchResults()
+	return results.Total > 0 && results.Defeats == 0 && results.Ties == 0
+}
 
-	return true
+func (s *SessionWithDetails) MoreVictoriesThanDefeats() bool {
+	results := s.countMatchResults()
+	return results.Victories > results.Defeats
+}
+
+func (s *SessionWithDetails) MoreDefeatsThanVictories() bool {
+	results := s.countMatchResults()
+	return results.Defeats > results.Victories
+}
+
+func (s *SessionWithDetails) SortMatchesByEndTime() {
+	sort.Slice(s.Matches, func(i, j int) bool {
+		return s.Matches[i].GameFinishedAt.Before(s.Matches[j].GameFinishedAt)
+	})
 }

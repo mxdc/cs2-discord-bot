@@ -98,3 +98,13 @@ $ go build -o cs2-discord-bot main.go
 ```bash
 $ ./cs2-discord-bot --config.file="/path/to/config.yml"
 ```
+
+4. Run the bot with options:
+```bash
+$ ./cs2-discord-bot --config.file="./config.yml" \
+                    --prompt.file="./prompts/system.md" \
+                    --translation.file="./translations.yml" \
+                    --session \
+                    --with.ai \
+                    --with.rank
+```

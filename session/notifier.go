@@ -7,6 +7,8 @@ import (
 	"github.com/mxdc/cs2-discord-bot/config"
 	"github.com/mxdc/cs2-discord-bot/discord"
 	"github.com/mxdc/cs2-discord-bot/leetify"
+	"github.com/mxdc/cs2-discord-bot/locales"
+	"github.com/mxdc/cs2-discord-bot/mistral"
 	"github.com/mxdc/cs2-discord-bot/parser"
 	"github.com/mxdc/cs2-discord-bot/steam"
 )
@@ -19,31 +21,40 @@ type MatchDetected struct {
 
 func (md *MatchDetected) IsTooOld() bool {
 	matchEndTime, _ := time.Parse(time.RFC3339, md.Match.GameFinishedAt)
-	return time.Since(matchEndTime) > 48*time.Hour
+	return time.Since(matchEndTime) > 24*time.Hour
 }
 
 type MatchNotifier struct {
-	cfg    *config.AppConfig
-	client *leetify.LeetifyClient
-	in     <-chan MatchDetected
+	cfg           *config.AppConfig
+	client        *leetify.LeetifyClient
+	mistralClient *mistral.MistralClient
+	translations  locales.Translations
+	in            <-chan MatchDetected
+	withRank      bool
 }
 
 func NewMatchNotifier(
 	cfg *config.AppConfig,
 	client *leetify.LeetifyClient,
+	mistralClient *mistral.MistralClient,
+	translations locales.Translations,
 	in <-chan MatchDetected,
+	withRank bool,
 ) *MatchNotifier {
 	return &MatchNotifier{
-		cfg:    cfg,
-		client: client,
-		in:     in,
+		cfg:           cfg,
+		client:        client,
+		mistralClient: mistralClient,
+		translations:  translations,
+		in:            in,
+		withRank:      withRank,
 	}
 }
 
 func (mm *MatchNotifier) HandleMatch() {
 	log.Println("Notifier: Started notifier, waiting for matches...")
 	seen := make(map[string]bool)
-	discordClient := discord.NewWebhookClient(mm.cfg.DiscordHook)
+	discordClient := discord.NewWebhookClient(mm.cfg.DiscordHook, mm.mistralClient, mm.translations, mm.withRank)
 	steamClient := steam.NewSteamClient(mm.cfg.SteamAPIKey)
 
 	for msg := range mm.in {
@@ -64,7 +75,7 @@ func (mm *MatchNotifier) HandleMatch() {
 			log.Printf("Manager: Warning: failed to get steam players: %v", err)
 		}
 
-		time.Sleep(5 * time.Second)
+		time.Sleep(5 * time.Minute)
 		matchDetails, err := mm.client.GetMatchDetails(msg.Match.GameId)
 		if err != nil {
 			// Continue without match details
@@ -78,27 +89,36 @@ func (mm *MatchNotifier) HandleMatch() {
 }
 
 type SessionNotifier struct {
-	client *leetify.LeetifyClient
-	cfg    *config.AppConfig
-	in     <-chan GameSession
+	client        *leetify.LeetifyClient
+	cfg           *config.AppConfig
+	mistralClient *mistral.MistralClient
+	translations  locales.Translations
+	in            <-chan GameSession
+	withRank      bool
 }
 
 func NewSessionNotifier(
-	client *leetify.LeetifyClient,
 	cfg *config.AppConfig,
+	leetifyClient *leetify.LeetifyClient,
+	mistralClient *mistral.MistralClient,
+	translations locales.Translations,
 	in <-chan GameSession,
+	withRank bool,
 ) *SessionNotifier {
 	return &SessionNotifier{
-		client: client,
-		cfg:    cfg,
-		in:     in,
+		cfg:           cfg,
+		client:        leetifyClient,
+		mistralClient: mistralClient,
+		translations:  translations,
+		in:            in,
+		withRank:      withRank,
 	}
 }
 
 func (sn *SessionNotifier) HandleSession() {
 	log.Println("SessionNotifier: Started sessionNotifier, waiting for completed sessions...")
 
-	discordClient := discord.NewWebhookClient(sn.cfg.DiscordHook)
+	discordClient := discord.NewWebhookClient(sn.cfg.DiscordHook, sn.mistralClient, sn.translations, sn.withRank)
 	steamClient := steam.NewSteamClient(sn.cfg.SteamAPIKey)
 
 	for completedSession := range sn.in {
@@ -130,9 +150,12 @@ func (sn *SessionNotifier) HandleSession() {
 
 			// Avoid rate limit failure
 			if i < len(completedSession.Matches)-2 {
-				time.Sleep(10 * time.Second)
+				time.Sleep(3 * time.Minute)
 			}
 		}
+
+		// sort matches by chronological order from oldest to newest
+		sessionWithDetails.SortMatchesByEndTime()
 
 		// Send Discord webhook
 		discordClient.SendSessionResult(sessionWithDetails)

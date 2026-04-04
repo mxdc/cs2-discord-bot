@@ -39,7 +39,7 @@ func (sm *SessionManager) HandleIncomingMatches() {
 		select {
 
 		case msg := <-sm.in:
-			// drop match older than 2 days ago to avoid processing old matches on startup
+			// drop old matches
 			if msg.IsTooOld() {
 				log.Printf("SessionManager: Match %s is too old, ignoring", msg.Match.GameId)
 				continue
