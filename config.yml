@@ -1,5 +1,8 @@
 ---
 
+# mistral
+mistral_api_key: 'your_mistral_api_key'
+
 # steam
 steam_api_key: "your_steam_api_key"
 steam_api_url: "https://api.steampowered.com"
@@ -9,6 +12,9 @@ leetify_api_url: "https://api.cs-prod.leetify.com"
 
 # discord
 discord_hook: "https://discord.com/api/webhooks/your/token"
+
+# can be "en" or "fr"
+lang: "en"
 
 # one crawler per tracked player
 players:

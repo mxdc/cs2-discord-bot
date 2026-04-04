@@ -88,6 +88,18 @@ type MatchWithDetails struct {
 	Winner         int
 }
 
+func (m *MatchWithDetails) Defeat() bool {
+	return m.Winner == 2
+}
+
+func (m *MatchWithDetails) Victory() bool {
+	return m.Winner == 1
+}
+
+func (m *MatchWithDetails) Tie() bool {
+	return m.Winner == 0
+}
+
 func (m *MatchWithDetails) GetMatchLink() string {
 	return fmt.Sprintf("https://leetify.com/public/match-details/%s/details-general", m.GameID)
 }
@@ -237,6 +249,11 @@ func parseKnownPlayers(players []Player, configPlayers []config.Player) []Player
 		}
 	}
 
+	// Sort known players by kills in descending order
+	slices.SortFunc(knownPlayers, func(a, b Player) int {
+		return b.Kills - a.Kills
+	})
+
 	return knownPlayers
 }
 
@@ -265,13 +282,18 @@ func parsePlayers(
 		if matchDetails != nil {
 			// Find the player stats and update
 			for _, p := range matchDetails.PlayerStats {
+				name := updatedPlayer.Name
+				if len(name) == 0 {
+					name = p.Name
+				}
+
 				if p.Steam64ID == updatedPlayer.SteamID {
 					updatedPlayer.Kills = p.TotalKills
 					updatedPlayer.Deaths = p.TotalDeaths
 					updatedPlayer.Mvps = p.Mvps
 					updatedPlayer.KdRatio = p.KdRatio
 					updatedPlayer.TotalDamage = p.TotalDamage
-					updatedPlayer.Name = p.Name
+					updatedPlayer.Name = name
 					break
 				}
 			}

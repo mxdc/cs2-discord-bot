@@ -46,11 +46,9 @@ func (s *GameSession) IsSessionTimeout() bool {
 
 func (s *GameSession) IsMatchPartOfSession(game leetify.LeetifyGameResponse) bool {
 	matchEndTime, _ := time.Parse(time.RFC3339, game.GameFinishedAt)
-	if matchEndTime.Before(s.LastMatchEndTime) {
-		return false
-	}
+	diff := matchEndTime.Sub(s.LastMatchEndTime).Abs()
 
-	return matchEndTime.Sub(s.LastMatchEndTime) <= s.sessionDuration
+	return diff <= s.sessionDuration
 }
 
 func (s *GameSession) GetSteamIDs() []string {

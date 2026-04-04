@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/mxdc/cs2-discord-bot/config"
@@ -12,7 +13,7 @@ import (
 
 type LeetifyClient struct {
 	httpClient *http.Client
-	BaseURL    string
+	baseURL    string
 }
 
 func NewLeetifyClient(baseURL string) *LeetifyClient {
@@ -20,7 +21,7 @@ func NewLeetifyClient(baseURL string) *LeetifyClient {
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
-		BaseURL: baseURL,
+		baseURL: baseURL,
 	}
 }
 
@@ -54,15 +55,13 @@ type ProfileResponse struct {
 }
 
 func (c *LeetifyClient) GetPlayerMatches(playerConfig config.Player) (ProfileResponse, error) {
-	url := fmt.Sprintf("%s/api/profile/id/%s", c.BaseURL, playerConfig.SteamID)
-	if playerConfig.AccountName != "" {
-		url = fmt.Sprintf("%s/api/profile/vanity-url/%s", c.BaseURL, playerConfig.PlayerID())
-	}
-	log.Printf("Leetify: Fetching matches from %s\n", url)
+	u := c.getUrlForPlayer(playerConfig)
+
+	log.Printf("Leetify: Fetching matches from %s\n", u.Path)
 
 	var emptyProfile ProfileResponse
 
-	req, err := http.NewRequest(http.MethodGet, url, nil)
+	req, err := http.NewRequest(http.MethodGet, u.String(), nil)
 	if err != nil {
 		return emptyProfile, fmt.Errorf("Failed to create request: %w", err)
 	}
@@ -126,9 +125,9 @@ type LeetifyPlayerStats struct {
 }
 
 func (c *LeetifyClient) GetMatchDetails(gameID string) (*MatchDetailsResponse, error) {
-	url := fmt.Sprintf("%s/api/games/%s", c.BaseURL, gameID)
+	u := c.getUrlForGameID(gameID)
 
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequest("GET", u.String(), nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
@@ -152,4 +151,29 @@ func (c *LeetifyClient) GetMatchDetails(gameID string) (*MatchDetailsResponse, e
 	}
 
 	return &details, nil
+}
+
+func (c *LeetifyClient) getUrlForPlayer(playerConfig config.Player) *url.URL {
+	u, err := url.Parse(c.baseURL)
+	if err != nil {
+		log.Fatalf("failed to parse base URL: %v", err)
+	}
+
+	u.Path = "/api/profile/id/" + playerConfig.SteamID
+	if len(playerConfig.AccountName) > 0 {
+		u.Path = "/api/profile/vanity-url/" + playerConfig.PlayerID()
+	}
+
+	return u
+}
+
+func (c *LeetifyClient) getUrlForGameID(gameID string) *url.URL {
+	u, err := url.Parse(c.baseURL)
+	if err != nil {
+		log.Fatalf("failed to parse base URL: %v", err)
+	}
+
+	u.Path = "/api/games/" + gameID
+
+	return u
 }

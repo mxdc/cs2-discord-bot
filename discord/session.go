@@ -3,16 +3,21 @@ package discord
 import (
 	"fmt"
 
+	"github.com/mxdc/cs2-discord-bot/locales"
 	"github.com/mxdc/cs2-discord-bot/parser"
 )
 
 type SessionResultBuilder struct {
-	session parser.SessionWithDetails
+	session      parser.SessionWithDetails
+	translations locales.Translations
+	withRank     bool
 }
 
-func NewSessionResultBuilder(session parser.SessionWithDetails) *SessionResultBuilder {
+func NewSessionResultBuilder(session parser.SessionWithDetails, translations locales.Translations, withRank bool) *SessionResultBuilder {
 	return &SessionResultBuilder{
-		session: session,
+		session:      session,
+		translations: translations,
+		withRank:     withRank,
 	}
 }
 
@@ -24,29 +29,20 @@ func (b *SessionResultBuilder) BuildMessage() WebhookMessage {
 		Content:  content,
 		TTS:      false,
 		Embeds:   []Embed{embed},
-		Username: "CS2",
+		Username: b.translations.BotUsername,
 	}
 }
 
 func (b *SessionResultBuilder) formatSessionHeader() string {
 	knownPlayers := b.session.KnownPlayersWithCumulatedStats()
 
-	names := formatPlayerNamesAsTitle(knownPlayers)
-	if b.session.AllMatchDefeats() {
-		if len(knownPlayers) == 1 {
-			return fmt.Sprintf("%s is on a losing streak.", names)
-		}
-		return fmt.Sprintf("%s are on a losing streak.", names)
+	names := formatPlayerNamesAsTitle(knownPlayers, b.translations)
+
+	if len(knownPlayers) == 1 {
+		return formatSessionHeaderForSinglePlayer(b.translations, b.session, names, knownPlayers[0], b.withRank)
 	}
 
-	if b.session.AllMatchVictories() {
-		if len(knownPlayers) == 1 {
-			return fmt.Sprintf("%s is on a winning streak.", names)
-		}
-		return fmt.Sprintf("%s are on a winning streak.", names)
-	}
-
-	return fmt.Sprintf("%s played %d matches.", names, len(b.session.Matches))
+	return formatSessionHeaderForMultiplePlayers(b.translations, b.session, names)
 }
 
 func (b *SessionResultBuilder) createSessionEmbed() Embed {
@@ -69,4 +65,66 @@ func (b *SessionResultBuilder) createSessionEmbed() Embed {
 		Fields: fields,
 		Color:  color,
 	}
+}
+
+func formatSessionHeaderForSinglePlayer(
+	translations locales.Translations,
+	session parser.SessionWithDetails,
+	playerNameHeader string,
+	knownPlayer parser.Player,
+	withRank bool,
+) string {
+	t := translations
+
+	rankStats := knownPlayer.RankStats
+	newRank := 0
+	if rankStats.RankType == 11 && rankStats.RankChanged && rankStats.Rank > 0 {
+		newRank = rankStats.Rank
+	}
+
+	if session.AllMatchDefeats() {
+		if withRank && newRank > 0 {
+			return fmt.Sprintf(t.SessionSingleAllLossesRank, playerNameHeader, newRank)
+		}
+		return fmt.Sprintf(t.SessionAllLosses, playerNameHeader)
+	}
+
+	if session.AllMatchVictories() {
+		if withRank && newRank > 0 {
+			return fmt.Sprintf(t.SessionSingleAllWinsRank, playerNameHeader, newRank)
+		}
+		return fmt.Sprintf(t.SessionSingleAllWins, playerNameHeader)
+	}
+
+	if session.MoreVictoriesThanDefeats() {
+		return fmt.Sprintf(t.SessionMoreWins, playerNameHeader)
+	}
+
+	if session.MoreDefeatsThanVictories() {
+		return fmt.Sprintf(t.SessionMoreLosses, playerNameHeader)
+	}
+
+	return fmt.Sprintf(t.SessionSingleTie, playerNameHeader)
+}
+
+func formatSessionHeaderForMultiplePlayers(translations locales.Translations, session parser.SessionWithDetails, playerNamesHeader string) string {
+	t := translations
+
+	if session.AllMatchDefeats() {
+		return fmt.Sprintf(t.SessionAllLosses, playerNamesHeader)
+	}
+
+	if session.AllMatchVictories() {
+		return fmt.Sprintf(t.SessionAllWins, playerNamesHeader)
+	}
+
+	if session.MoreVictoriesThanDefeats() {
+		return fmt.Sprintf(t.SessionMoreWins, playerNamesHeader)
+	}
+
+	if session.MoreDefeatsThanVictories() {
+		return fmt.Sprintf(t.SessionMoreLosses, playerNamesHeader)
+	}
+
+	return fmt.Sprintf(t.SessionTie, playerNamesHeader)
 }

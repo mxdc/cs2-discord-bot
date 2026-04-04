@@ -8,12 +8,17 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/mxdc/cs2-discord-bot/locales"
+	"github.com/mxdc/cs2-discord-bot/mistral"
 	"github.com/mxdc/cs2-discord-bot/parser"
 )
 
 type WebhookClient struct {
-	webhookURL string
-	httpClient *http.Client
+	webhookURL    string
+	mistralClient *mistral.MistralClient
+	httpClient    *http.Client
+	translations  locales.Translations
+	withRank      bool
 }
 
 type Embed struct {
@@ -44,24 +49,28 @@ const (
 	ColorBlue  = 3447003  // Information blue
 )
 
-func NewWebhookClient(webhookURL string) *WebhookClient {
+func NewWebhookClient(
+	webhookURL string,
+	mistralClient *mistral.MistralClient,
+	translations locales.Translations,
+	withRank bool,
+) *WebhookClient {
 	return &WebhookClient{
-		webhookURL: webhookURL,
+		translations:  translations,
+		webhookURL:    webhookURL,
+		mistralClient: mistralClient,
 		httpClient: &http.Client{
 			Timeout: 10 * time.Second,
 		},
+		withRank: withRank,
 	}
 }
 
-// SendMatchResult sends a Discord embed message for a match result
 func (c *WebhookClient) SendMatchResult(match parser.MatchWithDetails) {
-	content := formatMatchHeader(match)
-	embed := createMatchEmbed(match)
-	message := WebhookMessage{
-		Content:  content,
-		TTS:      false,
-		Embeds:   []Embed{embed},
-		Username: "CS2",
+	message := NewMatchResultBuilder(match, c.translations, c.withRank).BuildMessage()
+	if c.mistralClient != nil {
+		result := c.mistralClient.GetGeneratedTitles(message.Content)
+		message.Content = result
 	}
 
 	log.Println("Discord: Sending Discord notification...")
@@ -73,15 +82,19 @@ func (c *WebhookClient) SendMatchResult(match parser.MatchWithDetails) {
 	}
 }
 
-// SendSessionResult sends a Discord embed message for a session result
 func (c *WebhookClient) SendSessionResult(session parser.SessionWithDetails) {
 	if len(session.Matches) == 1 {
 		c.SendMatchResult(session.Matches[0])
 		return
 	}
 
-	sessionResultBuiler := NewSessionResultBuilder(session)
+	sessionResultBuiler := NewSessionResultBuilder(session, c.translations, c.withRank)
 	message := sessionResultBuiler.BuildMessage()
+	if c.mistralClient != nil {
+		result := c.mistralClient.GetGeneratedTitles(message.Content)
+		message.Content = result
+	}
+
 	log.Println("Discord: Sending Discord notification...")
 
 	if err := c.sendWebhook(message); err != nil {
@@ -91,55 +104,6 @@ func (c *WebhookClient) SendSessionResult(session parser.SessionWithDetails) {
 	}
 }
 
-func formatMatchHeader(match parser.MatchWithDetails) string {
-	if match.OwnTeam.Score == 0 && match.EnemyTeam.Score == 0 {
-		return "A match has finished."
-	}
-
-	knownPlayers := match.OwnTeam.KnownPlayers
-	header := formatPlayerNamesAsTitle(knownPlayers)
-
-	if match.Winner == 1 {
-		return fmt.Sprintf("%s won the match.", header)
-	}
-	if match.Winner == 2 {
-		return fmt.Sprintf("%s lost the match.", header)
-	}
-
-	return fmt.Sprintf("%s finished in a tie.", header)
-}
-
-func createMatchEmbed(match parser.MatchWithDetails) Embed {
-	var color int
-
-	if match.Winner == 1 {
-		color = ColorGreen
-	} else if match.Winner == 2 {
-		color = ColorRed
-	} else {
-		color = ColorGray
-	}
-
-	fieldsFormatter := NewEmbedFieldFormatter()
-	fieldsFormatter.addMatchOneLinerField(match)
-	// fieldsFormatter.addGameModeField(match.GameMode)
-	// fieldsFormatter.addScoreField(match)
-	// fieldsFormatter.addMapNameField(match.MapName)
-	fieldsFormatter.addPlayerMVPField(match)
-	// fieldsFormatter.addMatchLinkField(match)
-
-	formattedFields := fieldsFormatter.GetFields()
-
-	embed := Embed{
-		Title:  "",
-		Color:  color,
-		Fields: formattedFields,
-	}
-
-	return embed
-}
-
-// sendWebhook sends the webhook message to Discord
 func (c *WebhookClient) sendWebhook(message WebhookMessage) error {
 	jsonData, err := json.Marshal(message)
 	if err != nil {

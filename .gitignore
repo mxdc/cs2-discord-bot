@@ -1,4 +1,5 @@
 bin/
+tmp/
 go.sum
 cs2-discord-bot-darwin-amd64
 cs2-discord-bot-darwin-arm64
