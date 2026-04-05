@@ -58,7 +58,7 @@ func (mm *MatchNotifier) HandleMatch() {
 	steamClient := steam.NewSteamClient(mm.cfg.SteamAPIKey)
 
 	for msg := range mm.in {
-		if seenGames.AlreadyNotified(msg.Match.GameId) {
+		if !seenGames.ShouldNotify(msg.Player.SteamID, msg.Match) {
 			continue
 		}
 

@@ -45,9 +45,10 @@ func (sm *SessionManager) HandleIncomingMatches() {
 				continue
 			}
 
-			if seenGames.AlreadyNotified(msg.Match.GameId) {
+			if !seenGames.ShouldNotify(msg.Player.SteamID, msg.Match) {
 				continue
 			}
+
 			seenGames.AddGame(msg.Player.SteamID, msg.Match.GameId, msg.Match.GameFinishedAt)
 
 			log.Printf("SessionManager: New match detected: %s", msg.Match.GameId)
