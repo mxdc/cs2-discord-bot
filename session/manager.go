@@ -29,7 +29,7 @@ func NewSessionManager(
 
 func (sm *SessionManager) HandleIncomingMatches() {
 	var currentSession *GameSession
-	seen := make(map[string]bool)
+	seenGames := &SeenGames{games: []SeenGame{}}
 	ticker := time.NewTicker(tickerInterval)
 	defer ticker.Stop()
 
@@ -45,10 +45,11 @@ func (sm *SessionManager) HandleIncomingMatches() {
 				continue
 			}
 
-			if seen[msg.Match.GameId] {
+			if !seenGames.ShouldNotify(msg.Player.SteamID, msg.Match) {
 				continue
 			}
-			seen[msg.Match.GameId] = true
+
+			seenGames.AddGame(msg.Player.SteamID, msg.Match.GameId, msg.Match.GameFinishedAt)
 
 			log.Printf("SessionManager: New match detected: %s", msg.Match.GameId)
 

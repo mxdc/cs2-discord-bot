@@ -76,11 +76,7 @@ func formatSessionHeaderForSinglePlayer(
 ) string {
 	t := translations
 
-	rankStats := knownPlayer.RankStats
-	newRank := 0
-	if rankStats.RankType == 11 && rankStats.RankChanged && rankStats.Rank > 0 {
-		newRank = rankStats.Rank
-	}
+	newRank := knownPlayer.GetRecentPremierRank()
 
 	if session.AllMatchDefeats() {
 		if withRank && newRank > 0 {

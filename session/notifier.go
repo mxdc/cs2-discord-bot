@@ -53,16 +53,16 @@ func NewMatchNotifier(
 
 func (mm *MatchNotifier) HandleMatch() {
 	log.Println("Notifier: Started notifier, waiting for matches...")
-	seen := make(map[string]bool)
+	seenGames := &SeenGames{games: []SeenGame{}}
 	discordClient := discord.NewWebhookClient(mm.cfg.DiscordHook, mm.mistralClient, mm.translations, mm.withRank)
 	steamClient := steam.NewSteamClient(mm.cfg.SteamAPIKey)
 
 	for msg := range mm.in {
-		if seen[msg.Match.GameId] {
+		if !seenGames.ShouldNotify(msg.Player.SteamID, msg.Match) {
 			continue
 		}
 
-		seen[msg.Match.GameId] = true
+		seenGames.AddGame(msg.Player.SteamID, msg.Match.GameId, msg.Match.GameFinishedAt)
 		log.Println("Manager: New match detected:", msg.Match.GameId)
 
 		// Get all Steam IDs from both teams

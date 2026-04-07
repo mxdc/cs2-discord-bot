@@ -68,7 +68,7 @@ func createMatchEmbed(match parser.MatchWithDetails) Embed {
 	// fieldsFormatter.addGameModeField(match.GameMode)
 	// fieldsFormatter.addScoreField(match)
 	// fieldsFormatter.addMapNameField(match.MapName)
-	fieldsFormatter.addPlayerMVPField(match)
+	// fieldsFormatter.addPlayerMVPField(match)
 	// fieldsFormatter.addMatchLinkField(match)
 
 	formattedFields := fieldsFormatter.GetFields()
@@ -91,11 +91,7 @@ func formatMatchHeaderForSinglePlayer(
 ) string {
 	t := translations
 
-	rankStats := knownPlayer.RankStats
-	newRank := 0
-	if rankStats.RankType == 11 && rankStats.RankChanged && rankStats.Rank > 0 {
-		newRank = rankStats.Rank
-	}
+	newRank := knownPlayer.GetRecentPremierRank()
 
 	switch match.Winner {
 	case 1:
