@@ -91,11 +91,7 @@ func formatMatchHeaderForSinglePlayer(
 ) string {
 	t := translations
 
-	rankStats := knownPlayer.RankStats
-	newRank := 0
-	if rankStats.RankType == 11 && rankStats.RankChanged && rankStats.Rank > 0 {
-		newRank = rankStats.Rank
-	}
+	newRank := knownPlayer.GetRecentPremierRank()
 
 	switch match.Winner {
 	case 1:
