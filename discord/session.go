@@ -74,10 +74,7 @@ func formatSessionHeaderForSinglePlayer(
 	knownPlayer parser.Player,
 	withRank bool,
 ) string {
-	t := translations
-	displayRank := withRank && session.AllMatchsInPremierMode()
-
-	if displayRank {
+	if withRank && session.AllMatchsInPremierMode() {
 		return formatSessionHeaderForSinglePlayerWithRank(
 			translations,
 			session,
@@ -85,6 +82,8 @@ func formatSessionHeaderForSinglePlayer(
 			knownPlayer,
 		)
 	}
+
+	t := translations
 
 	if session.AllMatchDefeats() {
 		return fmt.Sprintf(t.SessionAllLosses, playerNameHeader)
