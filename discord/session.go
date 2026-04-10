@@ -77,26 +77,33 @@ func formatSessionHeaderForSinglePlayer(
 	t := translations
 
 	newRank := knownPlayer.GetRecentPremierRank()
+	displayRank := newRank > 0 && withRank && session.AllMatchsInPremierMode()
 
 	if session.AllMatchDefeats() {
-		if withRank && newRank > 0 {
+		if displayRank {
 			return fmt.Sprintf(t.SessionSingleAllLossesRank, playerNameHeader, newRank)
 		}
 		return fmt.Sprintf(t.SessionAllLosses, playerNameHeader)
 	}
 
 	if session.AllMatchVictories() {
-		if withRank && newRank > 0 {
+		if displayRank {
 			return fmt.Sprintf(t.SessionSingleAllWinsRank, playerNameHeader, newRank)
 		}
 		return fmt.Sprintf(t.SessionSingleAllWins, playerNameHeader)
 	}
 
 	if session.MoreVictoriesThanDefeats() {
+		if displayRank {
+			return fmt.Sprintf(t.SessionMoreWinsRank, playerNameHeader, newRank)
+		}
 		return fmt.Sprintf(t.SessionMoreWins, playerNameHeader)
 	}
 
 	if session.MoreDefeatsThanVictories() {
+		if displayRank {
+			return fmt.Sprintf(t.SessionMoreLossesRank, playerNameHeader, newRank)
+		}
 		return fmt.Sprintf(t.SessionMoreLosses, playerNameHeader)
 	}
 

@@ -25,7 +25,9 @@ type Translations struct {
 	SessionAllWins             string `yaml:"session_all_wins"`
 	SessionSingleAllWins       string `yaml:"session_single_all_wins"`
 	SessionMoreWins            string `yaml:"session_more_wins"`
+	SessionMoreWinsRank        string `yaml:"session_more_wins_rank"`
 	SessionMoreLosses          string `yaml:"session_more_losses"`
+	SessionMoreLossesRank      string `yaml:"session_more_losses_rank"`
 	SessionTie                 string `yaml:"session_tie"`
 	SessionSingleTie           string `yaml:"session_single_tie"`
 	SessionSingleAllLossesRank string `yaml:"session_single_all_losses_rank"`

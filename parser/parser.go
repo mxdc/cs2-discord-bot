@@ -111,6 +111,10 @@ func (m *MatchWithDetails) Tie() bool {
 	return m.Winner == 0
 }
 
+func (m *MatchWithDetails) IsPremierMode() bool {
+	return m.GameMode == "Premier"
+}
+
 func (m *MatchWithDetails) GetMatchLink() string {
 	return fmt.Sprintf("https://leetify.com/public/match-details/%s/details-general", m.GameID)
 }

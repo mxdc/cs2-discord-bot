@@ -216,3 +216,13 @@ func (s *SessionWithDetails) SortMatchesByEndTime() {
 		return s.Matches[i].GameFinishedAt.Before(s.Matches[j].GameFinishedAt)
 	})
 }
+
+func (s *SessionWithDetails) AllMatchsInPremierMode() bool {
+	for _, match := range s.Matches {
+		if match.IsPremierMode() == false {
+			return false
+		}
+	}
+
+	return true
+}
