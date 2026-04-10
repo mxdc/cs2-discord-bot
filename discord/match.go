@@ -91,16 +91,17 @@ func formatMatchHeaderForSinglePlayer(
 ) string {
 	t := translations
 
-	newRank := knownPlayer.GetRecentPremierRank()
+	_, newRank := knownPlayer.GetRecentPremierRank()
+	displayRank := newRank > 0 && withRank && match.IsPremierMode()
 
 	switch match.Winner {
 	case 1:
-		if withRank && newRank > 0 {
+		if displayRank {
 			return fmt.Sprintf(t.WinSingleRank, playerNameHeader, newRank)
 		}
 		return fmt.Sprintf(t.WinSingle, playerNameHeader)
 	case 2:
-		if withRank && newRank > 0 {
+		if displayRank {
 			return fmt.Sprintf(t.LossSingleRank, playerNameHeader, newRank)
 		}
 		return fmt.Sprintf(t.LossSingle, playerNameHeader)

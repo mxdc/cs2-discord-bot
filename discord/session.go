@@ -75,36 +75,59 @@ func formatSessionHeaderForSinglePlayer(
 	withRank bool,
 ) string {
 	t := translations
+	displayRank := withRank && session.AllMatchsInPremierMode()
 
-	newRank := knownPlayer.GetRecentPremierRank()
-	displayRank := newRank > 0 && withRank && session.AllMatchsInPremierMode()
+	if displayRank {
+		return formatSessionHeaderForSinglePlayerWithRank(
+			translations,
+			session,
+			playerNameHeader,
+			knownPlayer,
+		)
+	}
 
 	if session.AllMatchDefeats() {
-		if displayRank {
-			return fmt.Sprintf(t.SessionSingleAllLossesRank, playerNameHeader, newRank)
-		}
 		return fmt.Sprintf(t.SessionAllLosses, playerNameHeader)
 	}
 
 	if session.AllMatchVictories() {
-		if displayRank {
-			return fmt.Sprintf(t.SessionSingleAllWinsRank, playerNameHeader, newRank)
-		}
 		return fmt.Sprintf(t.SessionSingleAllWins, playerNameHeader)
 	}
 
 	if session.MoreVictoriesThanDefeats() {
-		if displayRank {
-			return fmt.Sprintf(t.SessionMoreWinsRank, playerNameHeader, newRank)
-		}
 		return fmt.Sprintf(t.SessionMoreWins, playerNameHeader)
 	}
 
 	if session.MoreDefeatsThanVictories() {
-		if displayRank {
-			return fmt.Sprintf(t.SessionMoreLossesRank, playerNameHeader, newRank)
-		}
 		return fmt.Sprintf(t.SessionMoreLosses, playerNameHeader)
+	}
+
+	return fmt.Sprintf(t.SessionSingleTie, playerNameHeader)
+}
+
+func formatSessionHeaderForSinglePlayerWithRank(
+	translations locales.Translations,
+	session parser.SessionWithDetails,
+	playerNameHeader string,
+	knownPlayer parser.Player,
+) string {
+	t := translations
+	oldRank, newRank := knownPlayer.GetRecentPremierRank()
+
+	if session.AllMatchDefeats() {
+		return fmt.Sprintf(t.SessionSingleAllLossesRank, playerNameHeader, newRank)
+	}
+
+	if session.AllMatchVictories() {
+		return fmt.Sprintf(t.SessionSingleAllWinsRank, playerNameHeader, newRank)
+	}
+
+	if newRank-oldRank > 0 {
+		return fmt.Sprintf(t.SessionMoreWinsRank, playerNameHeader, newRank)
+	}
+
+	if oldRank-newRank > 0 {
+		return fmt.Sprintf(t.SessionMoreLossesRank, playerNameHeader, newRank)
 	}
 
 	return fmt.Sprintf(t.SessionSingleTie, playerNameHeader)
