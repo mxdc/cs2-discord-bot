@@ -34,15 +34,18 @@ type Player struct {
 	RankStats   PlayerRankStats
 }
 
-func (p *Player) GetRecentPremierRank() int {
+func (p *Player) GetRecentPremierRank() (int, int) {
 	rankStats := p.RankStats
 	newRank := 0
+	oldRank := 0
 
 	if rankStats.RankType == 11 && rankStats.RankChanged && rankStats.Rank > 0 {
 		newRank = rankStats.Rank
+		oldRank = rankStats.OldRank
+
 	}
 
-	return newRank
+	return oldRank, newRank
 }
 
 func (p *Player) FormatPlayerLink(withFlag, asTitle bool) string {
