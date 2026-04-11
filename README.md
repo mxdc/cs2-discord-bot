@@ -6,7 +6,7 @@ A Discord bot that automatically tracks Counter-Strike 2 match results and sends
 
 > The bot collects game data from Leetify public API.
 
-## ✨ Features
+## Features
 
 - **Match Tracking**: Continuously monitors multiple Steam accounts for completed CS2 matches
 - **Notifications**: Get Discord messages when matches end with detailed results
@@ -58,16 +58,21 @@ Create a `config.yml` file in your project directory:
 ```yaml
 ---
 
+# mistral
+mistral_api_key: 'your_mistral_api_key'
+
 # steam
 steam_api_key: "your_steam_api_key"
 steam_api_url: "https://api.steampowered.com"
 
 # leetify
-leetify_api_url: "https://api.leetify.com"
+leetify_api_url: "https://api.cs-prod.leetify.com"
 
 # discord
 discord_hook: "https://discord.com/api/webhooks/your/token"
 
+# can be "en" or "fr"
+lang: "en"
 # one crawler per tracked account
 players:
 - accountName: "player1"
