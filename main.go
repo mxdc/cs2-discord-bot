@@ -29,14 +29,13 @@ func startMatchNotifier(
 	client *leetify.LeetifyClient,
 	mistralClient *mistral.MistralClient,
 	translations locales.Translations,
-	withRank bool,
 	debugMode bool,
 ) {
 	log.Printf("CS2: Running in match mode with lang: %s", cfg.Lang)
 
 	matchChan := make(chan session.MatchDetected, 1024)
 
-	matchNotifier := session.NewMatchNotifier(cfg, client, mistralClient, translations, matchChan, withRank)
+	matchNotifier := session.NewMatchNotifier(cfg, client, mistralClient, translations, matchChan)
 	go matchNotifier.HandleMatch()
 
 	startCrawlers(client, cfg, matchChan, debugMode)
@@ -102,7 +101,7 @@ func main() {
 	if *sessionMode {
 		startSessionNotifier(cfg, client, mistralClient, translations, *withRank, *debugMode)
 	} else {
-		startMatchNotifier(cfg, client, mistralClient, translations, *withRank, *debugMode)
+		startMatchNotifier(cfg, client, mistralClient, translations, *debugMode)
 	}
 
 	log.Printf("CS2: Discord webhook configured: %t", cfg.DiscordHook != "")

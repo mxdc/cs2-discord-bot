@@ -8,6 +8,7 @@ import (
 type SessionManager struct {
 	in        <-chan MatchDetected
 	out       chan<- GameSession
+	seenGames *SeenGames
 	debugMode bool
 }
 
@@ -20,16 +21,18 @@ func NewSessionManager(
 	out chan<- GameSession,
 	debugMode bool,
 ) *SessionManager {
+	seenGames := &SeenGames{games: []SeenGame{}}
+
 	return &SessionManager{
 		in:        in,
 		out:       out,
+		seenGames: seenGames,
 		debugMode: debugMode,
 	}
 }
 
 func (sm *SessionManager) HandleIncomingMatches() {
 	var currentSession *GameSession
-	seenGames := &SeenGames{games: []SeenGame{}}
 	ticker := time.NewTicker(tickerInterval)
 	defer ticker.Stop()
 
@@ -45,11 +48,12 @@ func (sm *SessionManager) HandleIncomingMatches() {
 				continue
 			}
 
-			if !seenGames.ShouldNotify(msg.Player.SteamID, msg.Match) {
+			if !sm.seenGames.ShouldNotify(msg.Player.SteamID, msg.Match) {
+				log.Printf("SessionManager: Match %s has already been seen, ignoring", msg.Match.GameId)
 				continue
 			}
 
-			seenGames.AddGame(msg.Player.SteamID, msg.Match.GameId, msg.Match.GameFinishedAt)
+			sm.seenGames.AddGame(msg.Player.SteamID, msg.Match.GameId, msg.Match.GameFinishedAt)
 
 			log.Printf("SessionManager: New match detected: %s", msg.Match.GameId)
 
@@ -71,7 +75,7 @@ func (sm *SessionManager) HandleIncomingMatches() {
 			}
 
 			log.Printf("SessionManager: Match too far in time, flushing session")
-			sm.out <- *currentSession
+			sm.flush(currentSession)
 
 			currentSession = NewSession(msg.Match, msg.DetectedAt, sm.debugMode)
 			log.Printf("SessionManager: Started new session with match %s", msg.Match.GameId)
@@ -83,9 +87,22 @@ func (sm *SessionManager) HandleIncomingMatches() {
 
 			if currentSession.IsSessionTimeout() {
 				log.Printf("SessionManager: Inactivity timeout reached, flushing session")
-				sm.out <- *currentSession
+				sm.flush(currentSession)
 				currentSession = nil
 			}
 		}
 	}
+}
+
+func (sm *SessionManager) flush(currentSession *GameSession) {
+	if currentSession == nil {
+		return
+	}
+
+	last := currentSession.LastMatch()
+	recent := sm.seenGames.MostRecentGame()
+	if len(last.GameId) > 0 && len(recent.GameID) > 0 && last.GameId == recent.GameID {
+		currentSession.IsFresh = true
+	}
+	sm.out <- *currentSession
 }

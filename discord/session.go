@@ -13,7 +13,11 @@ type SessionResultBuilder struct {
 	withRank     bool
 }
 
-func NewSessionResultBuilder(session parser.SessionWithDetails, translations locales.Translations, withRank bool) *SessionResultBuilder {
+func NewSessionResultBuilder(
+	session parser.SessionWithDetails,
+	translations locales.Translations,
+	withRank bool,
+) *SessionResultBuilder {
 	return &SessionResultBuilder{
 		session:      session,
 		translations: translations,

@@ -19,7 +19,7 @@ type SeenGames struct {
 func (sg *SeenGames) ShouldNotify(steamID string, game leetify.LeetifyGameResponse) bool {
 	gameID := game.GameId
 
-	return sg.alreadyNotified(gameID) == false && sg.isMostRecentForPlayer(steamID, game) == true
+	return sg.alreadyNotified(gameID) == false
 }
 
 func (sg *SeenGames) alreadyNotified(gameId string) bool {
@@ -41,40 +41,25 @@ func (sg *SeenGames) AddGame(steamID, gameID, gameFinishedAt string) {
 	sg.games = append(sg.games, seenGame)
 }
 
-func (sg *SeenGames) isMostRecentForPlayer(steamID string, game leetify.LeetifyGameResponse) bool {
+func (sg *SeenGames) MostRecentGame() SeenGame {
 	if len(sg.games) == 0 {
-		return true
+		return SeenGame{}
 	}
 
-	gameTime, err := time.Parse(time.RFC3339, game.GameFinishedAt)
-	if err != nil {
-		return false
-	}
+	var mostRecentGame SeenGame
+	var mostRecentTime time.Time
 
-	// Find the most recent game in the store for the specific player
-	var mostRecentStoreTime time.Time
-	hasMostRecent := false
+	for i, game := range sg.games {
+		gameTime, err := time.Parse(time.RFC3339, game.GameFinishedAt)
+		if err != nil {
+			continue
+		}
 
-	for _, storedGame := range sg.games {
-		// Check if this stored game involves the specific player
-		if storedGame.SteamID == steamID {
-			storedTime, err := time.Parse(time.RFC3339, storedGame.GameFinishedAt)
-			if err != nil {
-				continue
-			}
-
-			if !hasMostRecent || storedTime.After(mostRecentStoreTime) {
-				mostRecentStoreTime = storedTime
-				hasMostRecent = true
-			}
+		if len(mostRecentGame.GameID) == 0 || gameTime.After(mostRecentTime) {
+			mostRecentGame = sg.games[i]
+			mostRecentTime = gameTime
 		}
 	}
 
-	// If no games found in store for this player, this game is the most recent
-	if !hasMostRecent {
-		return true
-	}
-
-	// Compare the game time with the most recent stored game time for this player
-	return gameTime.After(mostRecentStoreTime) || gameTime.Equal(mostRecentStoreTime)
+	return mostRecentGame
 }
