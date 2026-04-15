@@ -9,6 +9,7 @@ import (
 type SessionWithDetails struct {
 	Matches        []MatchWithDetails
 	TrackedPlayers []config.Player
+	IsFresh        bool
 }
 
 func (s *SessionWithDetails) BestRatioTeammate() Player {

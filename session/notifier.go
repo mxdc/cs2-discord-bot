@@ -30,7 +30,6 @@ type MatchNotifier struct {
 	mistralClient *mistral.MistralClient
 	translations  locales.Translations
 	in            <-chan MatchDetected
-	withRank      bool
 }
 
 func NewMatchNotifier(
@@ -39,7 +38,6 @@ func NewMatchNotifier(
 	mistralClient *mistral.MistralClient,
 	translations locales.Translations,
 	in <-chan MatchDetected,
-	withRank bool,
 ) *MatchNotifier {
 	return &MatchNotifier{
 		cfg:           cfg,
@@ -47,14 +45,13 @@ func NewMatchNotifier(
 		mistralClient: mistralClient,
 		translations:  translations,
 		in:            in,
-		withRank:      withRank,
 	}
 }
 
 func (mm *MatchNotifier) HandleMatch() {
 	log.Println("Notifier: Started notifier, waiting for matches...")
 	seenGames := &SeenGames{games: []SeenGame{}}
-	discordClient := discord.NewWebhookClient(mm.cfg.DiscordHook, mm.mistralClient, mm.translations, mm.withRank)
+	discordClient := discord.NewWebhookClient(mm.cfg.DiscordHook, mm.mistralClient, mm.translations, false)
 	steamClient := steam.NewSteamClient(mm.cfg.SteamAPIKey)
 
 	for msg := range mm.in {
@@ -124,7 +121,10 @@ func (sn *SessionNotifier) HandleSession() {
 	for completedSession := range sn.in {
 		log.Printf("SessionNotifier: New session received with %d matches", len(completedSession.Matches))
 
-		sessionWithDetails := parser.SessionWithDetails{TrackedPlayers: sn.cfg.Players}
+		sessionWithDetails := parser.SessionWithDetails{
+			TrackedPlayers: sn.cfg.Players,
+			IsFresh:        completedSession.IsFresh,
+		}
 
 		// Players flags are used for single match session only
 		var err error

@@ -88,7 +88,8 @@ func (c *WebhookClient) SendSessionResult(session parser.SessionWithDetails) {
 		return
 	}
 
-	sessionResultBuiler := NewSessionResultBuilder(session, c.translations, c.withRank)
+	withRank := c.withRank && session.IsFresh
+	sessionResultBuiler := NewSessionResultBuilder(session, c.translations, withRank)
 	message := sessionResultBuiler.BuildMessage()
 	if c.mistralClient != nil {
 		result := c.mistralClient.GetGeneratedTitles(message.Content)
