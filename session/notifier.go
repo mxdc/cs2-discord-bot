@@ -62,8 +62,20 @@ func (mm *MatchNotifier) HandleMatch() {
 		seenGames.AddGame(msg.Player.SteamID, msg.Match.GameId, msg.Match.GameFinishedAt)
 		log.Println("Manager: New match detected:", msg.Match.GameId)
 
-		// Get all Steam IDs from both teams
-		allSteamIDs := append(msg.Match.OwnTeamSteam64Ids, msg.Match.EnemyTeamSteam64Ids...)
+		time.Sleep(5 * time.Minute)
+		matchDetails, err := mm.client.GetMatchDetails(msg.Match.GameId)
+		if err != nil {
+			// Continue without match details
+			log.Printf("Manager: Warning: failed to get match details: %v", err)
+		}
+
+		// Get all Steam IDs from match details
+		var allSteamIDs []string
+		if matchDetails != nil {
+			for _, ps := range matchDetails.PlayerStats {
+				allSteamIDs = append(allSteamIDs, ps.Steam64ID)
+			}
+		}
 
 		// Get Steam player data (names and countries)
 		steamPlayers, err := steamClient.GetSteamPlayers(allSteamIDs)
@@ -72,12 +84,6 @@ func (mm *MatchNotifier) HandleMatch() {
 			log.Printf("Manager: Warning: failed to get steam players: %v", err)
 		}
 
-		time.Sleep(5 * time.Minute)
-		matchDetails, err := mm.client.GetMatchDetails(msg.Match.GameId)
-		if err != nil {
-			// Continue without match details
-			log.Printf("Manager: Warning: failed to get match details: %v", err)
-		}
 		matchWithDetails := parser.ParseMatchResultWithDetails(msg.Match, matchDetails, steamPlayers, mm.cfg.Players)
 
 		// Send Discord webhook
@@ -127,14 +133,20 @@ func (sn *SessionNotifier) HandleSession() {
 		}
 
 		// Players flags are used for single match session only
-		var err error
 		steamPlayers := []steam.SteamPlayer{}
 		if len(completedSession.Matches) == 1 {
-			allSteamIDs := completedSession.GetSteamIDs()
-			steamPlayers, err = steamClient.GetSteamPlayers(allSteamIDs)
-			if err != nil {
-				// Continue without steam data
-				log.Printf("SessionNotifier: Warning: failed to get steam players: %v", err)
+			// Fetch match details first to get Steam IDs
+			matchDetails, err := sn.client.GetMatchDetails(completedSession.Matches[0].GameId)
+			if err == nil && matchDetails != nil {
+				var allSteamIDs []string
+				for _, ps := range matchDetails.PlayerStats {
+					allSteamIDs = append(allSteamIDs, ps.Steam64ID)
+				}
+				steamPlayers, err = steamClient.GetSteamPlayers(allSteamIDs)
+				if err != nil {
+					// Continue without steam data
+					log.Printf("SessionNotifier: Warning: failed to get steam players: %v", err)
+				}
 			}
 		}
 

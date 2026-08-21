@@ -26,32 +26,21 @@ func NewLeetifyClient(baseURL string) *LeetifyClient {
 }
 
 type LeetifyGameResponse struct {
-	EnemyTeamSteam64Ids []string `json:"enemyTeamSteam64Ids"`
-	OwnTeamSteam64Ids   []string `json:"ownTeamSteam64Ids"`
-	DataSource          string   `json:"dataSource"`
-	GameFinishedAt      string   `json:"gameFinishedAt"`
-	GameId              string   `json:"gameId"`
-	IsCs2               bool     `json:"isCs2"`
-	MapName             string   `json:"mapName"`
-	MatchResult         string   `json:"matchResult"`
-	RankType            int      `json:"rankType"`
-	Scores              []int    `json:"scores"`
-}
-
-type LeetifyTeammateResponse struct {
-	Rank struct {
-		Type       string `json:"type"`
-		DataSource string `json:"dataSource"`
-		SkillLevel int    `json:"skillLevel"`
-	} `json:"rank"`
-	Steam64Id      string `json:"steam64Id"`
-	SteamAvatarUrl string `json:"steamAvatarUrl"`
-	SteamNickname  string `json:"steamNickname"`
+	DataSource          string  `json:"dataSource"`
+	Deaths              int     `json:"deaths"`
+	GameFinishedAt      string  `json:"gameFinishedAt"`
+	GameId              string  `json:"gameId"`
+	Kills               int     `json:"kills"`
+	LeetifyRating       float64 `json:"leetifyRating"`
+	MapName             string  `json:"mapName"`
+	MatchmakingRankType int     `json:"matchmakingRankType"`
+	MatchResult         string  `json:"matchResult"`
+	Rank                int     `json:"rank"`
+	Scores              []int   `json:"scores"`
 }
 
 type ProfileResponse struct {
-	Games     []LeetifyGameResponse     `json:"games"`
-	Teammates []LeetifyTeammateResponse `json:"teammates"`
+	Games []LeetifyGameResponse `json:"games"`
 }
 
 func (c *LeetifyClient) GetPlayerMatches(playerConfig config.Player) (ProfileResponse, error) {
@@ -159,10 +148,7 @@ func (c *LeetifyClient) getUrlForPlayer(playerConfig config.Player) *url.URL {
 		log.Fatalf("failed to parse base URL: %v", err)
 	}
 
-	u.Path = "/api/profile/id/" + playerConfig.SteamID
-	if len(playerConfig.AccountName) > 0 {
-		u.Path = "/api/profile/vanity-url/" + playerConfig.PlayerID()
-	}
+	u.Path = "/api/profile/" + playerConfig.SteamID + "/match-history"
 
 	return u
 }
