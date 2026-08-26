@@ -16,7 +16,7 @@ type SeenGames struct {
 	games []SeenGame
 }
 
-func (sg *SeenGames) ShouldNotify(steamID string, game leetify.LeetifyGameResponse) bool {
+func (sg *SeenGames) ShouldNotify(steamID string, game leetify.Game) bool {
 	gameID := game.GameId
 
 	return sg.alreadyNotified(gameID) == false

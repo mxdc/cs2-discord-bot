@@ -26,8 +26,8 @@ func getTrackedPlayers(players []config.Player) []config.Player {
 
 func startMatchNotifier(
 	cfg *config.AppConfig,
-	client *leetify.LeetifyClient,
-	mistralClient *mistral.MistralClient,
+	client *leetify.Client,
+	mistralClient *mistral.Client,
 	translations locales.Translations,
 	debugMode bool,
 ) {
@@ -43,8 +43,8 @@ func startMatchNotifier(
 
 func startSessionNotifier(
 	cfg *config.AppConfig,
-	client *leetify.LeetifyClient,
-	mistralClient *mistral.MistralClient,
+	client *leetify.Client,
+	mistralClient *mistral.Client,
 	translations locales.Translations,
 	withRank bool,
 	debugMode bool,
@@ -63,7 +63,7 @@ func startSessionNotifier(
 	startCrawlers(client, cfg, matchChan, debugMode)
 }
 
-func startCrawlers(client *leetify.LeetifyClient, cfg *config.AppConfig, matchChan chan<- session.MatchDetected, debugMode bool) {
+func startCrawlers(client *leetify.Client, cfg *config.AppConfig, matchChan chan<- session.MatchDetected, debugMode bool) {
 	log.Println("CS2: Starting crawler")
 
 	trackedPlayers := getTrackedPlayers(cfg.Players)
@@ -91,11 +91,11 @@ func main() {
 
 	cfg := config.MustLoadConfig(*configFile)
 	translations := locales.MustLoadTranslations(*translationFilePath, cfg.Lang)
-	client := leetify.NewLeetifyClient(cfg.LeetifyAPIURL)
+	client := leetify.New(cfg.LeetifyAPIURL)
 
-	var mistralClient *mistral.MistralClient
+	var mistralClient *mistral.Client
 	if *withAi {
-		mistralClient = mistral.NewMistralClient(cfg.MistralAPIKey, *promptFilePath)
+		mistralClient = mistral.New(cfg.MistralAPIKey, *promptFilePath)
 	}
 
 	if *sessionMode {

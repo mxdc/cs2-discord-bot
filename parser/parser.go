@@ -126,7 +126,7 @@ type MatchResult struct {
 	GameMode       string
 }
 
-func parseGameResponseFromLeetify(game leetify.LeetifyGameResponse) MatchResult {
+func parseGameResponseFromLeetify(game leetify.Game) MatchResult {
 	gameTime, _ := time.Parse(time.RFC3339, game.GameFinishedAt)
 
 	mode := "unknown"
@@ -178,7 +178,7 @@ func parseGameResponseFromLeetify(game leetify.LeetifyGameResponse) MatchResult 
 }
 
 func ParseMatchResultWithDetails(
-	game leetify.LeetifyGameResponse,
+	game leetify.Game,
 	matchDetails *leetify.MatchDetailsResponse,
 	steamPlayers []steam.SteamPlayer,
 	players []config.Player,

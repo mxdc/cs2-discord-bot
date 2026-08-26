@@ -15,7 +15,7 @@ import (
 
 type WebhookClient struct {
 	webhookURL    string
-	mistralClient *mistral.MistralClient
+	mistralClient *mistral.Client
 	httpClient    *http.Client
 	translations  locales.Translations
 	withRank      bool
@@ -51,7 +51,7 @@ const (
 
 func NewWebhookClient(
 	webhookURL string,
-	mistralClient *mistral.MistralClient,
+	mistralClient *mistral.Client,
 	translations locales.Translations,
 	withRank bool,
 ) *WebhookClient {

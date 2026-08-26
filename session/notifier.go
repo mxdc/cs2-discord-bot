@@ -14,7 +14,7 @@ import (
 )
 
 type MatchDetected struct {
-	Match      leetify.LeetifyGameResponse
+	Match      leetify.Game
 	Player     config.Player
 	DetectedAt time.Time
 }
@@ -26,16 +26,16 @@ func (md *MatchDetected) IsTooOld() bool {
 
 type MatchNotifier struct {
 	cfg           *config.AppConfig
-	client        *leetify.LeetifyClient
-	mistralClient *mistral.MistralClient
+	client        *leetify.Client
+	mistralClient *mistral.Client
 	translations  locales.Translations
 	in            <-chan MatchDetected
 }
 
 func NewMatchNotifier(
 	cfg *config.AppConfig,
-	client *leetify.LeetifyClient,
-	mistralClient *mistral.MistralClient,
+	client *leetify.Client,
+	mistralClient *mistral.Client,
 	translations locales.Translations,
 	in <-chan MatchDetected,
 ) *MatchNotifier {
@@ -52,7 +52,7 @@ func (mm *MatchNotifier) HandleMatch() {
 	log.Println("Notifier: Started notifier, waiting for matches...")
 	seenGames := &SeenGames{games: []SeenGame{}}
 	discordClient := discord.NewWebhookClient(mm.cfg.DiscordHook, mm.mistralClient, mm.translations, false)
-	steamClient := steam.NewSteamClient(mm.cfg.SteamAPIKey)
+	steamClient := steam.New(mm.cfg.SteamAPIKey)
 
 	for msg := range mm.in {
 		if !seenGames.ShouldNotify(msg.Player.SteamID, msg.Match) {
@@ -92,9 +92,9 @@ func (mm *MatchNotifier) HandleMatch() {
 }
 
 type SessionNotifier struct {
-	client        *leetify.LeetifyClient
+	client        *leetify.Client
 	cfg           *config.AppConfig
-	mistralClient *mistral.MistralClient
+	mistralClient *mistral.Client
 	translations  locales.Translations
 	in            <-chan GameSession
 	withRank      bool
@@ -102,8 +102,8 @@ type SessionNotifier struct {
 
 func NewSessionNotifier(
 	cfg *config.AppConfig,
-	leetifyClient *leetify.LeetifyClient,
-	mistralClient *mistral.MistralClient,
+	leetifyClient *leetify.Client,
+	mistralClient *mistral.Client,
 	translations locales.Translations,
 	in <-chan GameSession,
 	withRank bool,
@@ -122,7 +122,7 @@ func (sn *SessionNotifier) HandleSession() {
 	log.Println("SessionNotifier: Started sessionNotifier, waiting for completed sessions...")
 
 	discordClient := discord.NewWebhookClient(sn.cfg.DiscordHook, sn.mistralClient, sn.translations, sn.withRank)
-	steamClient := steam.NewSteamClient(sn.cfg.SteamAPIKey)
+	steamClient := steam.New(sn.cfg.SteamAPIKey)
 
 	for completedSession := range sn.in {
 		log.Printf("SessionNotifier: New session received with %d matches", len(completedSession.Matches))

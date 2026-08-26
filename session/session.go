@@ -8,7 +8,7 @@ import (
 )
 
 type GameSession struct {
-	Matches           []leetify.LeetifyGameResponse
+	Matches           []leetify.Game
 	LastMatchEndTime  time.Time
 	LastDetectionTime time.Time
 	sessionDuration   time.Duration
@@ -17,11 +17,11 @@ type GameSession struct {
 	debugMode         bool
 }
 
-func NewSession(game leetify.LeetifyGameResponse, detectedAt time.Time, debugMode bool) *GameSession {
+func NewSession(game leetify.Game, detectedAt time.Time, debugMode bool) *GameSession {
 	matchEndTime, _ := time.Parse(time.RFC3339, game.GameFinishedAt)
 
 	return &GameSession{
-		Matches:           []leetify.LeetifyGameResponse{game},
+		Matches:           []leetify.Game{game},
 		LastMatchEndTime:  matchEndTime,
 		LastDetectionTime: detectedAt,
 		sessionDuration:   3*time.Hour + 15*time.Minute,
@@ -31,7 +31,7 @@ func NewSession(game leetify.LeetifyGameResponse, detectedAt time.Time, debugMod
 	}
 }
 
-func (s *GameSession) AddMatch(game leetify.LeetifyGameResponse, detectedAt time.Time) {
+func (s *GameSession) AddMatch(game leetify.Game, detectedAt time.Time) {
 	s.Matches = append(s.Matches, game)
 
 	// Sort matches chronologically from oldest to newest
@@ -57,21 +57,21 @@ func (s *GameSession) IsSessionTimeout() bool {
 	return time.Since(s.LastDetectionTime) > s.sessionTimeout
 }
 
-func (s *GameSession) IsMatchPartOfSession(game leetify.LeetifyGameResponse) bool {
+func (s *GameSession) IsMatchPartOfSession(game leetify.Game) bool {
 	matchEndTime, _ := time.Parse(time.RFC3339, game.GameFinishedAt)
 	diff := matchEndTime.Sub(s.LastMatchEndTime).Abs()
 
 	return diff <= s.sessionDuration
 }
 
-func (s *GameSession) IsMatchBeforeCurrentSession(game leetify.LeetifyGameResponse) bool {
+func (s *GameSession) IsMatchBeforeCurrentSession(game leetify.Game) bool {
 	matchEndTime, _ := time.Parse(time.RFC3339, game.GameFinishedAt)
 	return matchEndTime.Before(s.LastMatchEndTime)
 }
 
-func (s *GameSession) LastMatch() leetify.LeetifyGameResponse {
+func (s *GameSession) LastMatch() leetify.Game {
 	if len(s.Matches) == 0 {
-		return leetify.LeetifyGameResponse{}
+		return leetify.Game{}
 	}
 
 	return s.Matches[len(s.Matches)-1]
