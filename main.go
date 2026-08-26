@@ -54,7 +54,8 @@ func startSessionNotifier(
 	matchChan := make(chan session.MatchDetected, 1024)
 	sessionChan := make(chan session.GameSession, 256)
 
-	sessionMgr := session.NewSessionManager(matchChan, sessionChan, debugMode)
+	seenGames := session.NewSeenGames()
+	sessionMgr := session.NewSessionManager(matchChan, sessionChan, seenGames, debugMode)
 	go sessionMgr.HandleIncomingMatches()
 
 	sessionNotifier := session.NewSessionNotifier(cfg, client, mistralClient, translations, sessionChan, withRank)

@@ -49,12 +49,12 @@ func NewMatchNotifier(
 
 func (mm *MatchNotifier) HandleMatch() {
 	log.Println("Notifier: Started notifier, waiting for matches...")
-	seenGames := &SeenGames{games: []SeenGame{}}
+	seenGames := NewSeenGames()
 	discordClient := discord.NewWebhookClient(mm.cfg.DiscordHook, mm.mistralClient, mm.translations, false)
 	steamClient := steam.New(mm.cfg.SteamAPIKey)
 
 	for msg := range mm.in {
-		if !seenGames.ShouldNotify(msg.Player.SteamID, msg.Match) {
+		if !seenGames.ShouldNotify(msg.Match.GameId) {
 			continue
 		}
 

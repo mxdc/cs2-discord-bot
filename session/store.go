@@ -2,8 +2,6 @@ package session
 
 import (
 	"time"
-
-	"github.com/mxdc/cs2-discord-bot/leetify"
 )
 
 type SeenGame struct {
@@ -16,10 +14,12 @@ type SeenGames struct {
 	games []SeenGame
 }
 
-func (sg *SeenGames) ShouldNotify(steamID string, game leetify.Game) bool {
-	gameID := game.GameId
+func NewSeenGames() *SeenGames {
+	return &SeenGames{games: []SeenGame{}}
+}
 
-	return sg.alreadyNotified(gameID) == false
+func (sg *SeenGames) ShouldNotify(gameID string) bool {
+	return !sg.alreadyNotified(gameID)
 }
 
 func (sg *SeenGames) alreadyNotified(gameId string) bool {
