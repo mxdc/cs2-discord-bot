@@ -23,7 +23,6 @@ func (p *Player) PlayerID() string {
 
 type AppConfig struct {
 	SteamAPIKey   string   `yaml:"steam_api_key"`
-	SteamAPIURL   string   `yaml:"steam_api_url"`
 	LeetifyAPIURL string   `yaml:"leetify_api_url"`
 	MistralAPIKey string   `yaml:"mistral_api_key"`
 	DiscordHook   string   `yaml:"discord_hook"`

@@ -52,9 +52,6 @@ func (b *SessionResultBuilder) formatSessionHeader() string {
 func (b *SessionResultBuilder) createSessionEmbed() Embed {
 	fieldsFormatter := NewEmbedFieldFormatter()
 	fieldsFormatter.addSessionMatchesField(b.session.Matches)
-	// fieldsFormatter.addSessionTeammatesField(b.session, false)
-	// fieldsFormatter.addSessionCumulatedScoresField(b.session)
-	// fieldsFormatter.addSessionRankUpdate(b.session)
 	fields := fieldsFormatter.GetFields()
 
 	color := ColorBlue

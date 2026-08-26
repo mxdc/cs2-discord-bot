@@ -65,11 +65,6 @@ func createMatchEmbed(match parser.MatchWithDetails) Embed {
 
 	fieldsFormatter := NewEmbedFieldFormatter()
 	fieldsFormatter.addMatchOneLinerField(match)
-	// fieldsFormatter.addGameModeField(match.GameMode)
-	// fieldsFormatter.addScoreField(match)
-	// fieldsFormatter.addMapNameField(match.MapName)
-	// fieldsFormatter.addPlayerMVPField(match)
-	// fieldsFormatter.addMatchLinkField(match)
 
 	formattedFields := fieldsFormatter.GetFields()
 
