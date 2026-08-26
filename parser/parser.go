@@ -133,16 +133,14 @@ func (m *MatchWithDetails) GetOneLinerResult() string {
 }
 
 type MatchResult struct {
-	GameID              string
-	OwnTeamSteam64Ids   []string
-	EnemyTeamSteam64Ids []string
-	DataSource          string
-	GameFinishedAt      time.Time
-	IsCs2               bool
-	MapName             string
-	MatchResult         string
-	RankType            int
-	Scores              []int
+	GameID         string
+	DataSource     string
+	GameFinishedAt time.Time
+	IsCs2          bool
+	MapName        string
+	MatchResult    string
+	RankType       int
+	Scores         []int
 	// Computed fields for compatibility
 	OwnTeam   Team
 	EnemyTeam Team
@@ -163,61 +161,44 @@ func parseGameResponseFromLeetify(game leetify.LeetifyGameResponse) MatchResult 
 	}
 
 	match := MatchResult{
-		GameID:              game.GameId,
-		OwnTeamSteam64Ids:   game.OwnTeamSteam64Ids,
-		EnemyTeamSteam64Ids: game.EnemyTeamSteam64Ids,
-		DataSource:          game.DataSource,
-		GameFinishedAt:      gameTime,
-		IsCs2:               game.IsCs2,
-		MapName:             game.MapName,
-		MatchResult:         game.MatchResult,
-		RankType:            game.RankType,
-		Scores:              game.Scores,
-		// Computed
-		GameMode: mode,
+		GameID:         game.GameId,
+		DataSource:     game.DataSource,
+		GameFinishedAt: gameTime,
+		IsCs2:          true, // New API only returns CS2 games
+		MapName:        game.MapName,
+		MatchResult:    game.MatchResult,
+		RankType:       game.MatchmakingRankType,
+		Scores:         game.Scores,
+		GameMode:       mode,
 	}
 
-	// Create team structures based on Leetify's own/enemy team distinction
-	var ownTeamPlayers []Player
-	for _, steamID := range game.OwnTeamSteam64Ids {
-		ownTeamPlayers = append(ownTeamPlayers, Player{
-			SteamID: steamID,
-		})
-	}
-
-	var enemyTeamPlayers []Player
-	for _, steamID := range game.EnemyTeamSteam64Ids {
-		enemyTeamPlayers = append(enemyTeamPlayers, Player{
-			SteamID: steamID,
-		})
-	}
-
-	// Determine winner based on match result from Leetify
+	// Determine winner based on match result from match history
+	// scores[0] = own team, scores[1] = enemy team
 	var ownTeamScore, enemyTeamScore int
+	if len(game.Scores) >= 2 {
+		ownTeamScore = game.Scores[0]
+		enemyTeamScore = game.Scores[1]
+	}
+
 	switch game.MatchResult {
 	case "win":
 		match.Winner = 1 // Own team won
-		// Own team has higher score, enemy team has lower score
-		ownTeamScore = slices.Max(game.Scores)
-		enemyTeamScore = slices.Min(game.Scores)
 	case "loss":
 		match.Winner = 2 // Enemy team won
-		// Enemy team has higher score, own team has lower score
-		enemyTeamScore = slices.Max(game.Scores)
-		ownTeamScore = slices.Min(game.Scores)
+	case "tie":
+		match.Winner = 0 // Tie
 	default:
-		match.Winner = 0 // tie or unknown
-		// Assign in array order since scores are equal or unknown
-		ownTeamScore, enemyTeamScore = game.Scores[0], game.Scores[1]
+		match.Winner = 0 // Unknown
 	}
 
+	// Initialize empty teams - will be populated from match details
 	match.OwnTeam = Team{
 		Score:   ownTeamScore,
-		Players: ownTeamPlayers,
+		Players: []Player{},
 	}
 	match.EnemyTeam = Team{
 		Score:   enemyTeamScore,
-		Players: enemyTeamPlayers,
+		Players: []Player{},
 	}
 
 	return match
@@ -231,6 +212,38 @@ func ParseMatchResultWithDetails(
 ) MatchWithDetails {
 	match := parseGameResponseFromLeetify(game)
 
+	// Find tracked player's team number from match details
+	trackedPlayerTeamNumber := 0
+	if matchDetails != nil {
+		for _, ps := range matchDetails.PlayerStats {
+			for _, configPlayer := range players {
+				if ps.Steam64ID == configPlayer.SteamID {
+					trackedPlayerTeamNumber = ps.InitialTeamNumber
+					break
+				}
+			}
+			if trackedPlayerTeamNumber != 0 {
+				break
+			}
+		}
+	}
+
+	// Group players by team number
+	ownTeamPlayers := []Player{}
+	enemyTeamPlayers := []Player{}
+
+	if matchDetails != nil {
+		for _, ps := range matchDetails.PlayerStats {
+			player := Player{SteamID: ps.Steam64ID}
+
+			if ps.InitialTeamNumber == trackedPlayerTeamNumber {
+				ownTeamPlayers = append(ownTeamPlayers, player)
+			} else {
+				enemyTeamPlayers = append(enemyTeamPlayers, player)
+			}
+		}
+	}
+
 	matchWithDetails := MatchWithDetails{
 		GameID:         match.GameID,
 		GameMode:       match.GameMode,
@@ -238,12 +251,12 @@ func ParseMatchResultWithDetails(
 		MapName:        match.MapName,
 		OwnTeam: Team{
 			Score:        match.OwnTeam.Score,
-			Players:      parsePlayers(match.OwnTeam.Players, matchDetails, steamPlayers, players),
+			Players:      parsePlayers(ownTeamPlayers, matchDetails, steamPlayers, players),
 			KnownPlayers: []Player{},
 		},
 		EnemyTeam: Team{
 			Score:        match.EnemyTeam.Score,
-			Players:      parsePlayers(match.EnemyTeam.Players, matchDetails, steamPlayers, []config.Player{}),
+			Players:      parsePlayers(enemyTeamPlayers, matchDetails, steamPlayers, []config.Player{}),
 			KnownPlayers: []Player{},
 		},
 		Winner: match.Winner,
