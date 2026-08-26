@@ -26,8 +26,8 @@ func NewMatchResultBuilder(
 }
 
 func (b *MatchResultBuilder) BuildMessage() WebhookMessage {
-	content := formatMatchHeader(b.match, b.translations, b.withRank)
-	embed := createMatchEmbed(b.match)
+	content := b.formatMatchHeader()
+	embed := b.createMatchEmbed()
 
 	return WebhookMessage{
 		Content:  content,
@@ -37,24 +37,27 @@ func (b *MatchResultBuilder) BuildMessage() WebhookMessage {
 	}
 }
 
-func formatMatchHeader(match parser.MatchWithDetails, translations locales.Translations, withRank bool) string {
+func (b *MatchResultBuilder) formatMatchHeader() string {
+	match := b.match
+
 	if match.OwnTeam.Score == 0 && match.EnemyTeam.Score == 0 {
-		return translations.MatchFinished
+		return b.translations.MatchFinished
 	}
 
 	knownPlayers := match.OwnTeam.KnownPlayers
-	header := formatPlayerNamesAsTitle(knownPlayers, translations)
+	header := formatPlayerNamesAsTitle(knownPlayers, b.translations)
 
 	if len(knownPlayers) == 1 {
-		return formatMatchHeaderForSinglePlayer(translations, match, header, knownPlayers[0], withRank)
+		return formatMatchHeaderForSinglePlayer(b.translations, match, header, knownPlayers[0], b.withRank)
 	}
 
-	return formatMatchHeaderForMultiplePlayers(translations, match, header)
+	return formatMatchHeaderForMultiplePlayers(b.translations, match, header)
 }
 
-func createMatchEmbed(match parser.MatchWithDetails) Embed {
-	var color int
+func (b *MatchResultBuilder) createMatchEmbed() Embed {
+	match := b.match
 
+	var color int
 	if match.Winner == 1 {
 		color = ColorGreen
 	} else if match.Winner == 2 {
@@ -66,15 +69,11 @@ func createMatchEmbed(match parser.MatchWithDetails) Embed {
 	fieldsFormatter := NewEmbedFieldFormatter()
 	fieldsFormatter.addMatchOneLinerField(match)
 
-	formattedFields := fieldsFormatter.GetFields()
-
-	embed := Embed{
+	return Embed{
 		Title:  "",
 		Color:  color,
-		Fields: formattedFields,
+		Fields: fieldsFormatter.GetFields(),
 	}
-
-	return embed
 }
 
 func formatMatchHeaderForSinglePlayer(
