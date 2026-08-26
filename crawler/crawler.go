@@ -97,12 +97,7 @@ func findNewMatches(previous, current []leetify.Game) []leetify.Game {
 
 	// Sort newMatches by GameFinishedAt field, from oldest to newest
 	sort.Slice(newMatches, func(i, j int) bool {
-		currentTimeI, errI := time.Parse(time.RFC3339, newMatches[i].GameFinishedAt)
-		currentTimeJ, errJ := time.Parse(time.RFC3339, newMatches[j].GameFinishedAt)
-		if errI != nil || errJ != nil {
-			return false
-		}
-		return currentTimeI.Before(currentTimeJ)
+		return newMatches[i].FinishedAt().Before(newMatches[j].FinishedAt())
 	})
 
 	return newMatches

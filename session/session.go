@@ -18,11 +18,9 @@ type GameSession struct {
 }
 
 func NewSession(game leetify.Game, detectedAt time.Time, debugMode bool) *GameSession {
-	matchEndTime, _ := time.Parse(time.RFC3339, game.GameFinishedAt)
-
 	return &GameSession{
 		Matches:           []leetify.Game{game},
-		LastMatchEndTime:  matchEndTime,
+		LastMatchEndTime:  game.FinishedAt(),
 		LastDetectionTime: detectedAt,
 		sessionDuration:   3*time.Hour + 15*time.Minute,
 		sessionTimeout:    3*time.Hour + 30*time.Minute,
@@ -36,14 +34,11 @@ func (s *GameSession) AddMatch(game leetify.Game, detectedAt time.Time) {
 
 	// Sort matches chronologically from oldest to newest
 	sort.Slice(s.Matches, func(i, j int) bool {
-		timeI, _ := time.Parse(time.RFC3339, s.Matches[i].GameFinishedAt)
-		timeJ, _ := time.Parse(time.RFC3339, s.Matches[j].GameFinishedAt)
-		return timeI.Before(timeJ)
+		return s.Matches[i].FinishedAt().Before(s.Matches[j].FinishedAt())
 	})
 
 	if len(s.Matches) > 0 {
-		lastMatchTime, _ := time.Parse(time.RFC3339, s.Matches[len(s.Matches)-1].GameFinishedAt)
-		s.LastMatchEndTime = lastMatchTime
+		s.LastMatchEndTime = s.Matches[len(s.Matches)-1].FinishedAt()
 	}
 
 	s.LastDetectionTime = detectedAt
@@ -58,15 +53,13 @@ func (s *GameSession) IsSessionTimeout() bool {
 }
 
 func (s *GameSession) IsMatchPartOfSession(game leetify.Game) bool {
-	matchEndTime, _ := time.Parse(time.RFC3339, game.GameFinishedAt)
-	diff := matchEndTime.Sub(s.LastMatchEndTime).Abs()
+	diff := game.FinishedAt().Sub(s.LastMatchEndTime).Abs()
 
 	return diff <= s.sessionDuration
 }
 
 func (s *GameSession) IsMatchBeforeCurrentSession(game leetify.Game) bool {
-	matchEndTime, _ := time.Parse(time.RFC3339, game.GameFinishedAt)
-	return matchEndTime.Before(s.LastMatchEndTime)
+	return game.FinishedAt().Before(s.LastMatchEndTime)
 }
 
 func (s *GameSession) LastMatch() leetify.Game {

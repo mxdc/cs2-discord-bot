@@ -20,8 +20,7 @@ type MatchDetected struct {
 }
 
 func (md *MatchDetected) IsTooOld() bool {
-	matchEndTime, _ := time.Parse(time.RFC3339, md.Match.GameFinishedAt)
-	return time.Since(matchEndTime) > 24*time.Hour
+	return time.Since(md.Match.FinishedAt()) > 24*time.Hour
 }
 
 type MatchNotifier struct {

@@ -39,6 +39,11 @@ type Game struct {
 	Scores              []int   `json:"scores"`
 }
 
+func (g Game) FinishedAt() time.Time {
+	finishedAt, _ := time.Parse(time.RFC3339, g.GameFinishedAt)
+	return finishedAt
+}
+
 type ProfileResponse struct {
 	Games []Game `json:"games"`
 }
