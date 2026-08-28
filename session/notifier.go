@@ -58,9 +58,21 @@ func (mm *MatchNotifier) HandleMatch() {
 		// Avoid rate limit failure
 		time.Sleep(5 * time.Minute)
 
-		matchWithDetails := mm.enricher.EnrichWithProfiles(msg.Match)
-		mm.discordClient.SendMatchResult(matchWithDetails)
+		mm.processMatch(msg.Match)
 	}
+}
+
+// processMatch enriches and sends one match, recovering from any panic so a
+// single bad match doesn't permanently kill this notifier's goroutine.
+func (mm *MatchNotifier) processMatch(game leetify.Game) {
+	defer func() {
+		if r := recover(); r != nil {
+			mm.log.Printf("recovered from panic while processing match %s: %v", game.GameId, r)
+		}
+	}()
+
+	matchWithDetails := mm.enricher.EnrichWithProfiles(game)
+	mm.discordClient.SendMatchResult(matchWithDetails)
 }
 
 type SessionNotifier struct {
@@ -91,33 +103,45 @@ func (sn *SessionNotifier) HandleSession() {
 
 	for completedSession := range sn.in {
 		sn.log.Printf("New session received with %d matches", len(completedSession.Matches))
-
-		sessionWithDetails := parser.SessionWithDetails{
-			TrackedPlayers: sn.trackedPlayers,
-			IsFresh:        completedSession.IsFresh,
-		}
-
-		// Player flags are only fetched for single-match sessions
-		isSingleMatchSession := len(completedSession.Matches) == 1
-
-		for i, game := range completedSession.Matches {
-			var matchWithDetails parser.MatchWithDetails
-			if isSingleMatchSession {
-				matchWithDetails = sn.enricher.EnrichWithProfiles(game)
-			} else {
-				matchWithDetails = sn.enricher.Enrich(game)
-			}
-			sessionWithDetails.Matches = append(sessionWithDetails.Matches, matchWithDetails)
-
-			// Avoid rate limit failure
-			if i < len(completedSession.Matches)-2 {
-				time.Sleep(3 * time.Minute)
-			}
-		}
-
-		// sort matches by chronological order from oldest to newest
-		sessionWithDetails.SortMatchesByEndTime()
-
-		sn.discordClient.SendSessionResult(sessionWithDetails)
+		sn.processSession(completedSession)
 	}
+}
+
+// processSession enriches and sends one completed session, recovering from
+// any panic so a single bad session doesn't permanently kill this
+// notifier's goroutine.
+func (sn *SessionNotifier) processSession(completedSession GameSession) {
+	defer func() {
+		if r := recover(); r != nil {
+			sn.log.Printf("recovered from panic while processing session: %v", r)
+		}
+	}()
+
+	sessionWithDetails := parser.SessionWithDetails{
+		TrackedPlayers: sn.trackedPlayers,
+		IsFresh:        completedSession.IsFresh,
+	}
+
+	// Player flags are only fetched for single-match sessions
+	isSingleMatchSession := len(completedSession.Matches) == 1
+
+	for i, game := range completedSession.Matches {
+		var matchWithDetails parser.MatchWithDetails
+		if isSingleMatchSession {
+			matchWithDetails = sn.enricher.EnrichWithProfiles(game)
+		} else {
+			matchWithDetails = sn.enricher.Enrich(game)
+		}
+		sessionWithDetails.Matches = append(sessionWithDetails.Matches, matchWithDetails)
+
+		// Avoid rate limit failure
+		if i < len(completedSession.Matches)-2 {
+			time.Sleep(3 * time.Minute)
+		}
+	}
+
+	// sort matches by chronological order from oldest to newest
+	sessionWithDetails.SortMatchesByEndTime()
+
+	sn.discordClient.SendSessionResult(sessionWithDetails)
 }
