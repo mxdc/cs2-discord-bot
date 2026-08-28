@@ -11,13 +11,13 @@ import (
 	"github.com/mxdc/cs2-discord-bot/config"
 )
 
-type LeetifyClient struct {
+type Client struct {
 	httpClient *http.Client
 	baseURL    string
 }
 
-func NewLeetifyClient(baseURL string) *LeetifyClient {
-	return &LeetifyClient{
+func New(baseURL string) *Client {
+	return &Client{
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
@@ -25,7 +25,7 @@ func NewLeetifyClient(baseURL string) *LeetifyClient {
 	}
 }
 
-type LeetifyGameResponse struct {
+type Game struct {
 	DataSource          string  `json:"dataSource"`
 	Deaths              int     `json:"deaths"`
 	GameFinishedAt      string  `json:"gameFinishedAt"`
@@ -39,11 +39,16 @@ type LeetifyGameResponse struct {
 	Scores              []int   `json:"scores"`
 }
 
-type ProfileResponse struct {
-	Games []LeetifyGameResponse `json:"games"`
+func (g Game) FinishedAt() time.Time {
+	finishedAt, _ := time.Parse(time.RFC3339, g.GameFinishedAt)
+	return finishedAt
 }
 
-func (c *LeetifyClient) GetPlayerMatches(playerConfig config.Player) (ProfileResponse, error) {
+type ProfileResponse struct {
+	Games []Game `json:"games"`
+}
+
+func (c *Client) GetPlayerMatches(playerConfig config.Player) (ProfileResponse, error) {
 	u := c.getUrlForPlayer(playerConfig)
 
 	log.Printf("Leetify: Fetching matches from %s\n", u.Path)
@@ -77,14 +82,14 @@ func (c *LeetifyClient) GetPlayerMatches(playerConfig config.Player) (ProfileRes
 }
 
 type MatchDetailsResponse struct {
-	PlayerStats          []LeetifyPlayerStats `json:"playerStats"`
-	SteamShareCode       string               `json:"steamShareCode"`
-	ID                   string               `json:"id"`
-	DataSource           string               `json:"dataSource"`
-	FinishedAt           string               `json:"gameFinishedAt"`
-	IsCs2                bool                 `json:"isCs2"`
-	MapName              string               `json:"mapName"`
-	TeamScores           []int                `json:"teamScores"`
+	PlayerStats          []PlayerStats `json:"playerStats"`
+	SteamShareCode       string        `json:"steamShareCode"`
+	ID                   string        `json:"id"`
+	DataSource           string        `json:"dataSource"`
+	FinishedAt           string        `json:"gameFinishedAt"`
+	IsCs2                bool          `json:"isCs2"`
+	MapName              string        `json:"mapName"`
+	TeamScores           []int         `json:"teamScores"`
 	MatchmakingGameStats []struct {
 		ID             string    `json:"id"`
 		GameID         string    `json:"gameId"`
@@ -98,7 +103,7 @@ type MatchDetailsResponse struct {
 	} `json:"matchmakingGameStats"`
 }
 
-type LeetifyPlayerStats struct {
+type PlayerStats struct {
 	ID                string    `json:"id"`
 	GameID            string    `json:"gameId"`
 	GameFinishedAt    time.Time `json:"gameFinishedAt"`
@@ -113,7 +118,7 @@ type LeetifyPlayerStats struct {
 	TotalDamage       int       `json:"totalDamage"`
 }
 
-func (c *LeetifyClient) GetMatchDetails(gameID string) (*MatchDetailsResponse, error) {
+func (c *Client) GetMatchDetails(gameID string) (*MatchDetailsResponse, error) {
 	u := c.getUrlForGameID(gameID)
 
 	req, err := http.NewRequest("GET", u.String(), nil)
@@ -142,7 +147,7 @@ func (c *LeetifyClient) GetMatchDetails(gameID string) (*MatchDetailsResponse, e
 	return &details, nil
 }
 
-func (c *LeetifyClient) getUrlForPlayer(playerConfig config.Player) *url.URL {
+func (c *Client) getUrlForPlayer(playerConfig config.Player) *url.URL {
 	u, err := url.Parse(c.baseURL)
 	if err != nil {
 		log.Fatalf("failed to parse base URL: %v", err)
@@ -153,7 +158,7 @@ func (c *LeetifyClient) getUrlForPlayer(playerConfig config.Player) *url.URL {
 	return u
 }
 
-func (c *LeetifyClient) getUrlForGameID(gameID string) *url.URL {
+func (c *Client) getUrlForGameID(gameID string) *url.URL {
 	u, err := url.Parse(c.baseURL)
 	if err != nil {
 		log.Fatalf("failed to parse base URL: %v", err)

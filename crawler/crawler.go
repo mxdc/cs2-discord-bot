@@ -11,14 +11,14 @@ import (
 )
 
 type Crawler struct {
-	client    *leetify.LeetifyClient
+	client    *leetify.Client
 	player    config.Player
 	out       chan<- session.MatchDetected
 	debugMode bool
 }
 
 func NewCrawler(
-	client *leetify.LeetifyClient,
+	client *leetify.Client,
 	player config.Player,
 	out chan<- session.MatchDetected,
 	debugMode bool,
@@ -82,13 +82,13 @@ func (c *Crawler) StartCrawling() {
 }
 
 // findNewMatches returns matches that are in current but not in previous
-func findNewMatches(previous, current []leetify.LeetifyGameResponse) []leetify.LeetifyGameResponse {
+func findNewMatches(previous, current []leetify.Game) []leetify.Game {
 	prevSet := make(map[string]bool)
 	for _, match := range previous {
 		prevSet[match.GameId] = true
 	}
 
-	var newMatches []leetify.LeetifyGameResponse
+	var newMatches []leetify.Game
 	for _, match := range current {
 		if !prevSet[match.GameId] {
 			newMatches = append(newMatches, match)
@@ -97,12 +97,7 @@ func findNewMatches(previous, current []leetify.LeetifyGameResponse) []leetify.L
 
 	// Sort newMatches by GameFinishedAt field, from oldest to newest
 	sort.Slice(newMatches, func(i, j int) bool {
-		currentTimeI, errI := time.Parse(time.RFC3339, newMatches[i].GameFinishedAt)
-		currentTimeJ, errJ := time.Parse(time.RFC3339, newMatches[j].GameFinishedAt)
-		if errI != nil || errJ != nil {
-			return false
-		}
-		return currentTimeI.Before(currentTimeJ)
+		return newMatches[i].FinishedAt().Before(newMatches[j].FinishedAt())
 	})
 
 	return newMatches

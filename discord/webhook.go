@@ -15,7 +15,7 @@ import (
 
 type WebhookClient struct {
 	webhookURL    string
-	mistralClient *mistral.MistralClient
+	mistralClient *mistral.Client
 	httpClient    *http.Client
 	translations  locales.Translations
 	withRank      bool
@@ -51,7 +51,7 @@ const (
 
 func NewWebhookClient(
 	webhookURL string,
-	mistralClient *mistral.MistralClient,
+	mistralClient *mistral.Client,
 	translations locales.Translations,
 	withRank bool,
 ) *WebhookClient {
@@ -68,18 +68,7 @@ func NewWebhookClient(
 
 func (c *WebhookClient) SendMatchResult(match parser.MatchWithDetails) {
 	message := NewMatchResultBuilder(match, c.translations, c.withRank).BuildMessage()
-	if c.mistralClient != nil {
-		result := c.mistralClient.GetGeneratedTitles(message.Content)
-		message.Content = result
-	}
-
-	log.Println("Discord: Sending Discord notification...")
-
-	if err := c.sendWebhook(message); err != nil {
-		log.Printf("Discord: Error sending Discord webhook: %v", err)
-	} else {
-		log.Println("Discord: Discord notification sent successfully")
-	}
+	c.send(message)
 }
 
 func (c *WebhookClient) SendSessionResult(session parser.SessionWithDetails) {
@@ -89,11 +78,13 @@ func (c *WebhookClient) SendSessionResult(session parser.SessionWithDetails) {
 	}
 
 	withRank := c.withRank && session.IsFresh
-	sessionResultBuiler := NewSessionResultBuilder(session, c.translations, withRank)
-	message := sessionResultBuiler.BuildMessage()
+	message := NewSessionResultBuilder(session, c.translations, withRank).BuildMessage()
+	c.send(message)
+}
+
+func (c *WebhookClient) send(message WebhookMessage) {
 	if c.mistralClient != nil {
-		result := c.mistralClient.GetGeneratedTitles(message.Content)
-		message.Content = result
+		message.Content = c.mistralClient.GetGeneratedTitles(message.Content)
 	}
 
 	log.Println("Discord: Sending Discord notification...")

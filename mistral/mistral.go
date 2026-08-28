@@ -11,21 +11,21 @@ import (
 	"time"
 )
 
-type MistralClient struct {
+type Client struct {
 	apiKey       string
 	httpClient   *http.Client
 	baseURL      string
 	systemPrompt string
 }
 
-func NewMistralClient(apiKey string, systemPromptPath string) *MistralClient {
+func New(apiKey string, systemPromptPath string) *Client {
 	// open and read the system prompt from the specified file path
 	content, err := os.ReadFile(systemPromptPath)
 	if err != nil {
-		log.Fatalf("MistralClient: Error reading system prompt file: %v", err)
+		log.Fatalf("Client: Error reading system prompt file: %v", err)
 	}
 
-	return &MistralClient{
+	return &Client{
 		apiKey:  apiKey,
 		baseURL: "https://api.mistral.ai",
 		httpClient: &http.Client{
@@ -72,7 +72,7 @@ type MistralResponse struct {
 	Usage   Usage    `json:"usage"`
 }
 
-func (mc *MistralClient) postPrompt(message string) (*MistralResponse, error) {
+func (mc *Client) postPrompt(message string) (*MistralResponse, error) {
 	requestBody, err := mc.formatRequestBody(message)
 	if err != nil {
 		return nil, fmt.Errorf("failed to format request body: %w", err)
@@ -109,10 +109,10 @@ func (mc *MistralClient) postPrompt(message string) (*MistralResponse, error) {
 	return &mistralResp, nil
 }
 
-func (mc *MistralClient) GetGeneratedTitles(message string) string {
+func (mc *Client) GetGeneratedTitles(message string) string {
 	resp, err := mc.postPrompt(message)
 	if err != nil {
-		log.Printf("MistralClient: Error generating titles: %v", err)
+		log.Printf("Client: Error generating titles: %v", err)
 		return ""
 	}
 
@@ -127,7 +127,7 @@ func (mc *MistralClient) GetGeneratedTitles(message string) string {
 	return content
 }
 
-func (mc *MistralClient) formatRequestBody(message string) ([]byte, error) {
+func (mc *Client) formatRequestBody(message string) ([]byte, error) {
 	request := ChatCompletionRequest{
 		Model: "mistral-large-latest",
 		Messages: []Message{

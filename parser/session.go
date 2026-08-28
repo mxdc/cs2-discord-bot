@@ -12,69 +12,6 @@ type SessionWithDetails struct {
 	IsFresh        bool
 }
 
-func (s *SessionWithDetails) BestRatioTeammate() Player {
-	var bestRatioPlayer Player
-	var bestRatio float64
-
-	players := s.KnownPlayersWithCumulatedStats()
-	for _, player := range players {
-		ratio := player.KdRatio
-		if ratio > bestRatio {
-			bestRatio = ratio
-			bestRatioPlayer = player
-		}
-	}
-
-	return bestRatioPlayer
-
-}
-
-func (s *SessionWithDetails) WorstRatioTeammate() Player {
-	var worstRatioPlayer Player
-	var worstRatio float64 = 1e9
-
-	players := s.KnownPlayersWithCumulatedStats()
-	for _, player := range players {
-		ratio := player.KdRatio
-		if ratio < worstRatio {
-			worstRatio = ratio
-			worstRatioPlayer = player
-		}
-	}
-
-	return worstRatioPlayer
-
-}
-
-func (s *SessionWithDetails) BestKillDeathTeammate() Player {
-	var bestKiller Player
-
-	players := s.KnownPlayersWithCumulatedStats()
-	for _, player := range players {
-		if player.Kills > bestKiller.Kills {
-			bestKiller = player
-		}
-	}
-
-	return bestKiller
-}
-
-func (s *SessionWithDetails) WorstKillDeathTeammate() Player {
-	players := s.KnownPlayersWithCumulatedStats()
-	if len(players) == 0 {
-		return Player{}
-	}
-
-	worstKiller := players[0]
-	for _, player := range players {
-		if player.Kills < worstKiller.Kills {
-			worstKiller = player
-		}
-	}
-
-	return worstKiller
-}
-
 func (s *SessionWithDetails) KnownPlayersWithCumulatedStats() []Player {
 	statsMap := make(map[string]*Player)
 
@@ -146,22 +83,6 @@ func (s *SessionWithDetails) KnownPlayersWithCumulatedStats() []Player {
 	})
 
 	return uniquePlayers
-}
-
-func (s *SessionWithDetails) KnownPlayersSortedByKills() []Player {
-	players := s.KnownPlayersWithCumulatedStats()
-	sort.Slice(players, func(i, j int) bool {
-		return players[i].Kills > players[j].Kills
-	})
-	return players
-}
-
-func (s *SessionWithDetails) KnownPlayersSortedByRank() []Player {
-	players := s.KnownPlayersWithCumulatedStats()
-	sort.Slice(players, func(i, j int) bool {
-		return players[i].RankStats.Rank > players[j].RankStats.Rank
-	})
-	return players
 }
 
 // MatchResults holds the counted results of all matches in a session

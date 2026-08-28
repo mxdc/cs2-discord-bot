@@ -7,10 +7,12 @@ import (
 
 	"github.com/mxdc/cs2-discord-bot/config"
 	"github.com/mxdc/cs2-discord-bot/crawler"
+	"github.com/mxdc/cs2-discord-bot/discord"
 	"github.com/mxdc/cs2-discord-bot/leetify"
 	"github.com/mxdc/cs2-discord-bot/locales"
 	"github.com/mxdc/cs2-discord-bot/mistral"
 	"github.com/mxdc/cs2-discord-bot/session"
+	"github.com/mxdc/cs2-discord-bot/steam"
 )
 
 func getTrackedPlayers(players []config.Player) []config.Player {
@@ -26,26 +28,30 @@ func getTrackedPlayers(players []config.Player) []config.Player {
 
 func startMatchNotifier(
 	cfg *config.AppConfig,
-	client *leetify.LeetifyClient,
-	mistralClient *mistral.MistralClient,
+	leetifyClient *leetify.Client,
+	enricher *session.MatchEnricher,
 	translations locales.Translations,
+	mistralClient *mistral.Client,
 	debugMode bool,
 ) {
 	log.Printf("CS2: Running in match mode with lang: %s", cfg.Lang)
 
 	matchChan := make(chan session.MatchDetected, 1024)
 
-	matchNotifier := session.NewMatchNotifier(cfg, client, mistralClient, translations, matchChan)
+	discordClient := discord.NewWebhookClient(cfg.DiscordHook, mistralClient, translations, false)
+	seenGames := session.NewSeenGames()
+	matchNotifier := session.NewMatchNotifier(enricher, discordClient, seenGames, matchChan)
 	go matchNotifier.HandleMatch()
 
-	startCrawlers(client, cfg, matchChan, debugMode)
+	startCrawlers(leetifyClient, cfg, matchChan, debugMode)
 }
 
 func startSessionNotifier(
 	cfg *config.AppConfig,
-	client *leetify.LeetifyClient,
-	mistralClient *mistral.MistralClient,
+	leetifyClient *leetify.Client,
+	enricher *session.MatchEnricher,
 	translations locales.Translations,
+	mistralClient *mistral.Client,
 	withRank bool,
 	debugMode bool,
 ) {
@@ -54,16 +60,18 @@ func startSessionNotifier(
 	matchChan := make(chan session.MatchDetected, 1024)
 	sessionChan := make(chan session.GameSession, 256)
 
-	sessionMgr := session.NewSessionManager(matchChan, sessionChan, debugMode)
+	seenGames := session.NewSeenGames()
+	sessionMgr := session.NewSessionManager(matchChan, sessionChan, seenGames, debugMode)
 	go sessionMgr.HandleIncomingMatches()
 
-	sessionNotifier := session.NewSessionNotifier(cfg, client, mistralClient, translations, sessionChan, withRank)
+	discordClient := discord.NewWebhookClient(cfg.DiscordHook, mistralClient, translations, withRank)
+	sessionNotifier := session.NewSessionNotifier(enricher, discordClient, cfg.Players, sessionChan)
 	go sessionNotifier.HandleSession()
 
-	startCrawlers(client, cfg, matchChan, debugMode)
+	startCrawlers(leetifyClient, cfg, matchChan, debugMode)
 }
 
-func startCrawlers(client *leetify.LeetifyClient, cfg *config.AppConfig, matchChan chan<- session.MatchDetected, debugMode bool) {
+func startCrawlers(client *leetify.Client, cfg *config.AppConfig, matchChan chan<- session.MatchDetected, debugMode bool) {
 	log.Println("CS2: Starting crawler")
 
 	trackedPlayers := getTrackedPlayers(cfg.Players)
@@ -91,17 +99,20 @@ func main() {
 
 	cfg := config.MustLoadConfig(*configFile)
 	translations := locales.MustLoadTranslations(*translationFilePath, cfg.Lang)
-	client := leetify.NewLeetifyClient(cfg.LeetifyAPIURL)
 
-	var mistralClient *mistral.MistralClient
+	leetifyClient := leetify.New(cfg.LeetifyAPIURL)
+	steamClient := steam.New(cfg.SteamAPIKey)
+	enricher := session.NewMatchEnricher(leetifyClient, steamClient, cfg.Players)
+
+	var mistralClient *mistral.Client
 	if *withAi {
-		mistralClient = mistral.NewMistralClient(cfg.MistralAPIKey, *promptFilePath)
+		mistralClient = mistral.New(cfg.MistralAPIKey, *promptFilePath)
 	}
 
 	if *sessionMode {
-		startSessionNotifier(cfg, client, mistralClient, translations, *withRank, *debugMode)
+		startSessionNotifier(cfg, leetifyClient, enricher, translations, mistralClient, *withRank, *debugMode)
 	} else {
-		startMatchNotifier(cfg, client, mistralClient, translations, *debugMode)
+		startMatchNotifier(cfg, leetifyClient, enricher, translations, mistralClient, *debugMode)
 	}
 
 	log.Printf("CS2: Discord webhook configured: %t", cfg.DiscordHook != "")

@@ -31,8 +31,8 @@ type Client struct {
 	apiKey string
 }
 
-// NewSteamClient creates a new Steam API client
-func NewSteamClient(apiKey string) *Client {
+// New creates a new Steam API client
+func New(apiKey string) *Client {
 	return &Client{
 		apiKey: apiKey,
 	}

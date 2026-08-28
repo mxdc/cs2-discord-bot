@@ -5,7 +5,6 @@ import (
 	"slices"
 	"strings"
 	"time"
-	"unicode"
 
 	"github.com/mxdc/cs2-discord-bot/config"
 	"github.com/mxdc/cs2-discord-bot/leetify"
@@ -71,21 +70,6 @@ func (p *Player) FormatPlayerTitle() string {
 	return cases.Title(language.English).String(strings.ToLower(p.Name))
 }
 
-func (p *Player) IsNameInvisible() bool {
-	if p.Name == "" {
-		return true
-	}
-
-	for _, r := range p.Name {
-		if !(unicode.IsSpace(r) ||
-			unicode.IsControl(r) ||
-			unicode.Is(unicode.Cf, r)) {
-			return false
-		}
-	}
-	return true
-}
-
 type Team struct {
 	Score        int
 	Players      []Player
@@ -134,21 +118,15 @@ func (m *MatchWithDetails) GetOneLinerResult() string {
 
 type MatchResult struct {
 	GameID         string
-	DataSource     string
 	GameFinishedAt time.Time
-	IsCs2          bool
 	MapName        string
-	MatchResult    string
-	RankType       int
-	Scores         []int
-	// Computed fields for compatibility
-	OwnTeam   Team
-	EnemyTeam Team
-	Winner    int
-	GameMode  string
+	OwnTeam        Team
+	EnemyTeam      Team
+	Winner         int
+	GameMode       string
 }
 
-func parseGameResponseFromLeetify(game leetify.LeetifyGameResponse) MatchResult {
+func parseGameResponseFromLeetify(game leetify.Game) MatchResult {
 	gameTime, _ := time.Parse(time.RFC3339, game.GameFinishedAt)
 
 	mode := "unknown"
@@ -162,13 +140,8 @@ func parseGameResponseFromLeetify(game leetify.LeetifyGameResponse) MatchResult 
 
 	match := MatchResult{
 		GameID:         game.GameId,
-		DataSource:     game.DataSource,
 		GameFinishedAt: gameTime,
-		IsCs2:          true, // New API only returns CS2 games
 		MapName:        game.MapName,
-		MatchResult:    game.MatchResult,
-		RankType:       game.MatchmakingRankType,
-		Scores:         game.Scores,
 		GameMode:       mode,
 	}
 
@@ -205,7 +178,7 @@ func parseGameResponseFromLeetify(game leetify.LeetifyGameResponse) MatchResult 
 }
 
 func ParseMatchResultWithDetails(
-	game leetify.LeetifyGameResponse,
+	game leetify.Game,
 	matchDetails *leetify.MatchDetailsResponse,
 	steamPlayers []steam.SteamPlayer,
 	players []config.Player,

@@ -19,10 +19,9 @@ const (
 func NewSessionManager(
 	in <-chan MatchDetected,
 	out chan<- GameSession,
+	seenGames *SeenGames,
 	debugMode bool,
 ) *SessionManager {
-	seenGames := &SeenGames{games: []SeenGame{}}
-
 	return &SessionManager{
 		in:        in,
 		out:       out,
@@ -48,7 +47,7 @@ func (sm *SessionManager) HandleIncomingMatches() {
 				continue
 			}
 
-			if !sm.seenGames.ShouldNotify(msg.Player.SteamID, msg.Match) {
+			if !sm.seenGames.ShouldNotify(msg.Match.GameId) {
 				log.Printf("SessionManager: Match %s has already been seen, ignoring", msg.Match.GameId)
 				continue
 			}
